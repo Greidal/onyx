@@ -5,6 +5,7 @@ import os
 import re
 from datetime import datetime, timezone
 from email.message import Message
+from email.utils import getaddresses
 from email.utils import parseaddr
 from enum import Enum
 from typing import Any, cast
@@ -431,23 +432,20 @@ def _sanitize_mailbox_names(mailboxes: list[str]) -> list[str]:
 
 
 def _parse_addrs(raw_header: str) -> list[tuple[str, str]]:
-    addrs = raw_header.split(",")
-    name_addr_pairs = [parseaddr(addr=addr) for addr in addrs if addr]
-    return [(name, addr) for name, addr in name_addr_pairs if addr]
+    name_addr_pairs = getaddresses([raw_header])
+    valid_pairs = [(name, addr) for name, addr in name_addr_pairs if addr]
+    if not valid_pairs and raw_header.strip():
+        return [(raw_header, raw_header)]
+    return valid_pairs
 
 
 def _parse_singular_addr(raw_header: str) -> tuple[str, str]:
-    addrs = _parse_addrs(raw_header=raw_header)
-    if not addrs:
-        raise RuntimeError(
-            f"Parsing email header resulted in no addresses being found; {raw_header=}"
-        )
-    elif len(addrs) >= 2:
-        raise RuntimeError(
-            f"Expected a singular address, but instead got multiple; {raw_header=} {addrs=}"
-        )
-
-    return addrs[0]
+    name, addr = parseaddr(raw_header)
+    if not addr:
+        addr = raw_header
+    if not name:
+        name = raw_header
+    return name, addr
 
 
 if __name__ == "__main__":
