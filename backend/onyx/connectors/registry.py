@@ -208,6 +208,10 @@ CONNECTOR_CLASS_MAP = {
         module_path="onyx.connectors.drupal_wiki.connector",
         class_name="DrupalWikiConnector",
     ),
+    DocumentSource.NEXTCLOUD: ConnectorMapping(
+        module_path="onyx.connectors.nextcloud.connector",
+        class_name="NextcloudConnector",
+    ),
     DocumentSource.IMAP: ConnectorMapping(
         module_path="onyx.connectors.imap.connector",
         class_name="ImapConnector",

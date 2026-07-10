@@ -603,6 +603,7 @@ export enum ValidSources {
   Braintrust = "braintrust",
   Lumapps = "lumapps",
   Canvas = "canvas",
+  Nextcloud = "nextcloud",
 
   // Craft-specific sources
   CraftFile = "craft_file",

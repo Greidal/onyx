@@ -1928,6 +1928,28 @@ For example, specifying .*-alerts as a "channel to exclude" will cause the conne
     ],
     advanced_values: [],
   },
+  nextcloud: {
+    description: "Configure Nextcloud connector",
+    values: [],
+    advanced_values: [
+      {
+        type: "text",
+        query: "Enter path filter (optional):",
+        label: "Path Filter",
+        name: "path_filter",
+        optional: true,
+        description: "Optional path to limit indexing to a specific folder (e.g., /Documents)",
+      },
+      {
+        type: "list",
+        query: "Enter file extensions to include (optional):",
+        label: "File Extensions",
+        name: "file_extensions",
+        optional: true,
+        description: "Optional list of file extensions to include (e.g., .pdf, .docx, .txt)",
+      },
+    ],
+  },
   imap: {
     description: "Configure Email connector",
     values: [
@@ -2317,4 +2339,9 @@ export interface ImapConfig {
   host: string;
   port?: number;
   mailboxes?: string[];
+}
+
+export interface NextcloudConfig {
+  path_filter?: string;
+  file_extensions?: string[];
 }

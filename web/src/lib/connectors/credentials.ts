@@ -303,6 +303,12 @@ export interface TestRailCredentialJson {
   testrail_api_key: string;
 }
 
+export interface NextcloudCredentialJson {
+  nextcloud_server_url: string;
+  nextcloud_username: string;
+  nextcloud_password: string;
+}
+
 export const credentialTemplates: Record<ValidSources, any> = {
   github: { github_access_token: "" } as GithubCredentialJson,
   gitlab: {
@@ -528,6 +534,11 @@ export const credentialTemplates: Record<ValidSources, any> = {
     testrail_username: "",
     testrail_api_key: "",
   } as TestRailCredentialJson,
+  nextcloud: {
+    nextcloud_server_url: "",
+    nextcloud_username: "",
+    nextcloud_password: "",
+  } as NextcloudCredentialJson,
 };
 
 export const credentialDisplayNames: Record<string, string> = {
@@ -714,6 +725,11 @@ export const credentialDisplayNames: Record<string, string> = {
   // Bitbucket
   bitbucket_email: "Bitbucket Account Email",
   bitbucket_api_token: "Bitbucket API Token",
+
+  // Nextcloud
+  nextcloud_server_url: "Nextcloud Server URL",
+  nextcloud_username: "Nextcloud Username",
+  nextcloud_password: "Nextcloud Password / App Token",
 };
 
 export function getDisplayNameForCredentialKey(key: string): string {
