@@ -262,6 +262,10 @@ export interface FirefliesCredentialJson {
   fireflies_api_key: string;
 }
 
+export interface MondayCredentialJson {
+  monday_api_token: string;
+}
+
 export interface BraintrustCredentialJson {
   braintrust_api_key: string;
 }
@@ -495,6 +499,9 @@ export const credentialTemplates: Record<ValidSources, any> = {
     domain: "",
     access_token: "",
   } as EgnyteCredentialJson,
+  monday: {
+    monday_api_token: "",
+  } as MondayCredentialJson,
   airtable: {
     airtable_access_token: "",
   } as AirtableCredentialJson,

@@ -604,6 +604,7 @@ export enum ValidSources {
   Lumapps = "lumapps",
   Canvas = "canvas",
   Nextcloud = "nextcloud",
+  Monday = "monday",
 
   // Craft-specific sources
   CraftFile = "craft_file",

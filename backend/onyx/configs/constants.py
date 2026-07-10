@@ -278,6 +278,7 @@ class DocumentSource(str, Enum):
     IMAP = "imap"
     BITBUCKET = "bitbucket"
     TESTRAIL = "testrail"
+    MONDAY = "monday"
     BRAINTRUST = "braintrust"
     LUMAPPS = "lumapps"
 

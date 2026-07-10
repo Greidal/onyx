@@ -5,6 +5,7 @@ import {
   BraintrustIcon,
   BoxIcon,
   NextcloudIcon,
+  MondayIcon,
 } from "@/components/icons/icons";
 import { ValidSources } from "@/lib/types";
 import { SourceCategory, SourceMetadata } from "@/lib/search/interfaces";
@@ -288,6 +289,11 @@ export const SOURCE_METADATA_MAP: SourceMap = {
     displayName: "Linear",
     category: SourceCategory.TicketingAndTaskManagement,
     docs: `${DOCS_ADMINS_PATH}/connectors/official/linear`,
+  },
+  monday: {
+    icon: MondayIcon,
+    displayName: "Monday.com",
+    category: SourceCategory.TicketingAndTaskManagement,
   },
   freshdesk: {
     icon: SvgFreshdesk,

@@ -236,6 +236,7 @@ export const WindowsIcon = ({
 export const BoxIcon = createLogoIcon(boxIcon);
 export const BraintrustIcon = createLogoIcon("/Braintrust.svg");
 export { NextcloudIcon } from "@/components/icons/NextcloudIcon";
+export { MondayIcon } from "@/components/icons/MondayIcon";
 export const GoogleStorageIcon = createLogoIcon(googleCloudStorageIcon, {
   sizeAdjustment: 4,
   classNameAddition: "-m-0.5",

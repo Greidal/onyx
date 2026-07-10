@@ -1828,6 +1828,11 @@ For example, specifying .*-alerts as a "channel to exclude" will cause the conne
     ],
     advanced_values: [],
   },
+  monday: {
+    description: "Configure Monday.com connector",
+    values: [],
+    advanced_values: [],
+  },
   airtable: {
     description: "Configure Airtable connector",
     values: [
