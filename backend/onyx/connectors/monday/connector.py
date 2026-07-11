@@ -1,16 +1,20 @@
 from typing import Any, Iterator
 
 from pydantic import BaseModel
+from dateutil import parser
 
 from onyx.configs.constants import DocumentSource
 from onyx.connectors.interfaces import CheckpointedConnector
 from onyx.connectors.interfaces import CheckpointOutput
-from onyx.connectors.interfaces import CredentialsConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
+from onyx.connectors.interfaces import SlimConnector
+from onyx.connectors.interfaces import GenerateSlimDocumentOutput
+from onyx.connectors.interfaces import IndexingHeartbeatInterface
 from onyx.connectors.models import ConnectorFailure
 from onyx.connectors.models import Document
 from onyx.connectors.models import DocumentFailure
 from onyx.connectors.models import TextSection
+from onyx.connectors.models import SlimDocument
 from onyx.connectors.monday.client import MondayClient
 from onyx.utils.logger import setup_logger
 
@@ -28,7 +32,7 @@ class MondayCredentialsNotSetUpError(PermissionError):
         super().__init__("Monday Credentials are not set up, was load_credentials called?")
 
 
-class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint]):
+class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint], SlimConnector):
     def __init__(self) -> None:
         self.client: MondayClient | None = None
 
@@ -45,6 +49,39 @@ class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint]):
             
         self.client = MondayClient(token)
         return None
+
+    def retrieve_all_slim_docs(
+        self,
+        start: SecondsSinceUnixEpoch | None = None,
+        end: SecondsSinceUnixEpoch | None = None,
+        callback: IndexingHeartbeatInterface | None = None,
+    ) -> GenerateSlimDocumentOutput:
+        if self.client is None:
+            raise MondayCredentialsNotSetUpError()
+            
+        slim_docs = []
+        for board in self.client.get_boards():
+            for item in self.client.get_slim_items_for_board(board["id"]):
+                doc_updated_at = None
+                if item.get("updated_at"):
+                    try:
+                        doc_updated_at = parser.isoparse(item["updated_at"])
+                    except Exception:
+                        pass
+                slim_docs.append(
+                    SlimDocument(
+                        id=f"monday_{item['id']}",
+                        doc_created_at=doc_updated_at
+                    )
+                )
+                if len(slim_docs) >= 100:
+                    yield slim_docs
+                    slim_docs = []
+                    if callback:
+                        callback.heartbeat()
+                        
+        if slim_docs:
+            yield slim_docs
 
     def load_from_checkpoint(
         self,
@@ -68,12 +105,24 @@ class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint]):
                     for item in self.client.get_items_for_board(board_id):
                         item_id = item["id"]
                         
+                        # Filter by updated_at if we can
+                        doc_updated_at = None
+                        if item.get("updated_at"):
+                            try:
+                                doc_updated_at = parser.isoparse(item["updated_at"])
+                                if start and doc_updated_at.timestamp() < start:
+                                    continue
+                                if end and doc_updated_at.timestamp() > end:
+                                    continue
+                            except Exception:
+                                pass
+
                         try:
-                            # Also fetch updates (comments)
-                            updates = self.client.get_updates_for_item(item_id)
-                            
+                            # updates are now fetched directly on the item
+                            updates = item.get("updates") or []
                             document = self._item_to_document(board, item, updates)
                             if document:
+                                document.doc_updated_at = doc_updated_at
                                 yield document
                                 
                         except Exception as e:
@@ -93,7 +142,7 @@ class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint]):
             logger.error(f"Error fetching Monday boards: {e}")
             raise
 
-        return MondayConnectorCheckpoint()
+        return MondayConnectorCheckpoint(has_more=False)
 
     def _item_to_document(self, board: dict, item: dict, updates: list) -> Document | None:
         item_id = item["id"]
@@ -109,8 +158,6 @@ class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint]):
                 continue
             col_text = col.get("text")
             if col_text:
-                # We can't always get the column name easily from the item's column_values without fetching the board's columns
-                # For V1, we'll just include the column's raw text content
                 content_parts.append(f"{col_text}")
                 
         if updates:
@@ -127,15 +174,6 @@ class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint]):
         full_text = "\n".join(content_parts)
         
         doc_id = f"monday_{item_id}"
-        updated_at_str = item.get("updated_at")
-        doc_updated_at = None
-        if updated_at_str:
-            # Format: '2024-03-22T10:30:00Z'
-            try:
-                from dateutil import parser
-                doc_updated_at = parser.isoparse(updated_at_str)
-            except Exception:
-                pass
 
         return Document(
             id=doc_id,
@@ -143,7 +181,7 @@ class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint]):
             source=DocumentSource.MONDAY,
             semantic_identifier=f"{board_name} - {item_name}",
             metadata={},
-            doc_updated_at=doc_updated_at,
+            doc_updated_at=None, # Populated by caller
             primary_owners=None,
             secondary_owners=None,
         )

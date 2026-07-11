@@ -76,6 +76,15 @@ class MondayClient:
                             text
                             type
                         }
+                        updates {
+                            id
+                            text_body
+                            created_at
+                            creator {
+                                name
+                                email
+                            }
+                        }
                     }
                 }
             }
@@ -96,6 +105,15 @@ class MondayClient:
                         id
                         text
                         type
+                    }
+                    updates {
+                        id
+                        text_body
+                        created_at
+                        creator {
+                            name
+                            email
+                        }
                     }
                 }
             }
@@ -125,27 +143,52 @@ class MondayClient:
             for item in items:
                 yield item
 
-    def get_updates_for_item(self, item_id: str) -> List[Dict[str, Any]]:
-        """Fetch all updates (comments) for a specific item."""
+    def get_slim_items_for_board(self, board_id: str) -> Generator[Dict[str, Any], None, None]:
+        """Fetch slim item data (id and updated_at) for deletion syncing."""
         query = """
-        query($itemId: [ID!]) {
-            items(ids: $itemId) {
-                updates {
-                    id
-                    text_body
-                    created_at
-                    creator {
-                        name
-                        email
+        query($boardId: [ID!], $limit: Int) {
+            boards(ids: $boardId) {
+                items_page(limit: $limit) {
+                    cursor
+                    items {
+                        id
+                        updated_at
                     }
                 }
             }
         }
         """
-        variables = {"itemId": [item_id]}
+        next_query = """
+        query($cursor: String!) {
+            next_items_page(cursor: $cursor, limit: 100) {
+                cursor
+                items {
+                    id
+                    updated_at
+                }
+            }
+        }
+        """
+        
+        variables = {"boardId": [board_id], "limit": 100}
         data = self._execute_query(query, variables)
-        items = data.get("items", [])
-        if not items:
-            return []
+        boards = data.get("boards", [])
+        if not boards:
+            return
             
-        return items[0].get("updates", [])
+        items_page = boards[0].get("items_page", {})
+        cursor = items_page.get("cursor")
+        items = items_page.get("items", [])
+        
+        for item in items:
+            yield item
+            
+        while cursor:
+            variables = {"cursor": cursor}
+            data = self._execute_query(next_query, variables)
+            next_page = data.get("next_items_page", {})
+            cursor = next_page.get("cursor")
+            items = next_page.get("items", [])
+            
+            for item in items:
+                yield item
