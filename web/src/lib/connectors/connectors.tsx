@@ -1985,6 +1985,16 @@ For example, specifying .*-alerts as a "channel to exclude" will cause the conne
         description:
           "Specify mailboxes to index (e.g., INBOX, Sent, Drafts). Leave empty to index all mailboxes.",
       },
+      {
+        type: "checkbox",
+        query: "Index attachments?",
+        label: "Index Attachments",
+        name: "index_attachments",
+        optional: true,
+        default: true,
+        description:
+          "Whether to extract and index text from email attachments.",
+      },
     ],
     advanced_values: [],
   },
@@ -2344,6 +2354,7 @@ export interface ImapConfig {
   host: string;
   port?: number;
   mailboxes?: string[];
+  index_attachments?: boolean;
 }
 
 export interface NextcloudConfig {

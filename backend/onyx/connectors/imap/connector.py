@@ -8,12 +8,15 @@ from email.message import Message
 from email.utils import getaddresses
 from email.utils import parseaddr
 from enum import Enum
+from io import BytesIO
 from typing import Any, cast
 
 import bs4
 from pydantic import BaseModel
 
 from onyx.access.models import ExternalAccess
+from onyx.configs.app_configs import IMAP_CONNECTOR_ATTACHMENT_CHAR_COUNT_THRESHOLD
+from onyx.configs.app_configs import IMAP_CONNECTOR_ATTACHMENT_SIZE_THRESHOLD
 from onyx.configs.constants import DocumentSource
 from onyx.connectors.imap.models import EmailHeaders
 from onyx.connectors.interfaces import (
@@ -27,8 +30,10 @@ from onyx.connectors.models import (
     BasicExpertInfo,
     ConnectorCheckpoint,
     Document,
+    Section,
     TextSection,
 )
+from onyx.file_processing.extract_file_text import extract_file_text
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -75,10 +80,12 @@ class ImapConnector(
         host: str,
         port: int = _DEFAULT_IMAP_PORT_NUMBER,
         mailboxes: list[str] | None = None,
+        index_attachments: bool = True,
     ) -> None:
         self._host = host
         self._port = port
         self._mailboxes = mailboxes
+        self._index_attachments = index_attachments
         self._credentials: dict[str, Any] | None = None
 
     @property
@@ -202,6 +209,7 @@ class ImapConnector(
                 email_msg=email_msg,
                 email_headers=email_headers,
                 include_perm_sync=include_perm_sync,
+                index_attachments=self._index_attachments,
             )
 
         return checkpoint
@@ -340,6 +348,7 @@ def _convert_email_headers_and_body_into_document(
     email_msg: Message,
     email_headers: EmailHeaders,
     include_perm_sync: bool,
+    index_attachments: bool,
 ) -> Document:
     sender_name, sender_addr = _parse_singular_addr(raw_header=email_headers.sender)
     parsed_recipients = (
@@ -359,7 +368,11 @@ def _convert_email_headers_and_body_into_document(
             display_name=sender_name, email=sender_addr
         )
 
-    email_body = _parse_email_body(email_msg=email_msg, email_headers=email_headers)
+    email_sections = _parse_email_sections(
+        email_msg=email_msg,
+        email_headers=email_headers,
+        index_attachments=index_attachments,
+    )
     primary_owners = list(expert_info_map.values())
     external_access = (
         ExternalAccess(
@@ -377,50 +390,104 @@ def _convert_email_headers_and_body_into_document(
         semantic_identifier=email_headers.subject,
         metadata={},
         source=DocumentSource.IMAP,
-        sections=[TextSection(text=email_body)],
+        sections=email_sections,
         primary_owners=primary_owners,
         external_access=external_access,
     )
 
 
-def _parse_email_body(
+def _parse_email_sections(
     email_msg: Message,
     email_headers: EmailHeaders,
-) -> str:
+    index_attachments: bool,
+) -> list[Section]:
+    sections: list[Section] = []
     body = None
+
     for part in email_msg.walk():
         if part.is_multipart():
             # Multipart parts are *containers* for other parts, not the actual content itself.
             # Therefore, we skip until we find the individual parts instead.
             continue
 
-        charset = part.get_content_charset() or "utf-8"
+        content_disposition = str(part.get_content_disposition() or "")
+        filename = part.get_filename()
 
-        try:
-            raw_payload = part.get_payload(decode=True)
-            if not isinstance(raw_payload, bytes):
-                logger.warning(
-                    "Payload section from email was expected to be an array of bytes, instead got type(raw_payload)=%r, raw_payload=%r",
-                    type(raw_payload),
-                    raw_payload,
-                )
+        # Check if it's an attachment
+        if "attachment" in content_disposition or filename:
+            if not index_attachments:
                 continue
-            body = raw_payload.decode(charset)
-            break
-        except (UnicodeDecodeError, LookupError) as e:
-            logger.warning("Could not decode part with charset %s: %s", charset, e)
+
+            try:
+                raw_payload = part.get_payload(decode=True)
+                if not isinstance(raw_payload, bytes):
+                    continue
+
+                if filename:
+                    if len(raw_payload) > IMAP_CONNECTOR_ATTACHMENT_SIZE_THRESHOLD:
+                        logger.warning(
+                            "Skipping attachment %s due to size. size=%s threshold=%s",
+                            filename,
+                            len(raw_payload),
+                            IMAP_CONNECTOR_ATTACHMENT_SIZE_THRESHOLD,
+                        )
+                        continue
+
+                    extracted_text = extract_file_text(
+                        file=BytesIO(raw_payload),
+                        file_name=filename,
+                        break_on_unprocessable=False,
+                    )
+                    
+                    if extracted_text:
+                        if len(extracted_text) > IMAP_CONNECTOR_ATTACHMENT_CHAR_COUNT_THRESHOLD:
+                            logger.warning(
+                                "Skipping attachment %s due to extracted text length. size=%s threshold=%s",
+                                filename,
+                                len(extracted_text),
+                                IMAP_CONNECTOR_ATTACHMENT_CHAR_COUNT_THRESHOLD,
+                            )
+                            continue
+                            
+                        sections.append(
+                            TextSection(text=f"Attachment ({filename}):\n{extracted_text}")
+                        )
+            except Exception as e:
+                logger.warning("Could not extract text from attachment %s: %s", filename, e)
             continue
+
+        # If not an attachment, treat it as the main body
+        # We only take the first non-multipart body part we can decode
+        if body is None:
+            charset = part.get_content_charset() or "utf-8"
+            try:
+                raw_payload = part.get_payload(decode=True)
+                if not isinstance(raw_payload, bytes):
+                    logger.warning(
+                        "Payload section from email was expected to be an array of bytes, instead got type(raw_payload)=%r, raw_payload=%r",
+                        type(raw_payload),
+                        raw_payload,
+                    )
+                    continue
+                body = raw_payload.decode(charset)
+            except (UnicodeDecodeError, LookupError) as e:
+                logger.warning("Could not decode part with charset %s: %s", charset, e)
+                continue
 
     if not body:
         logger.warning(
             "Email with email_headers.id=%r has an empty body; returning an empty string",
             email_headers.id,
         )
-        return ""
+        body = ""
 
     soup = bs4.BeautifulSoup(markup=body, features="html.parser")
+    main_body_text = " ".join(str_section for str_section in soup.stripped_strings)
 
-    return " ".join(str_section for str_section in soup.stripped_strings)
+    if main_body_text:
+        sections.insert(0, TextSection(text=main_body_text))
+
+    return sections
 
 
 def _sanitize_mailbox_names(mailboxes: list[str]) -> list[str]:
