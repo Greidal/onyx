@@ -66,6 +66,32 @@ def get_document_info(
     )
 
 
+from fastapi.responses import PlainTextResponse
+
+@router.get("/content", dependencies=[Depends(require_vector_db)])
+def get_document_content(
+    document_id: str = Query(...),
+    user: User = Depends(require_permission(Permission.BASIC_ACCESS)),
+    db_session: Session = Depends(get_session),
+) -> PlainTextResponse:
+    search_settings = get_current_search_settings(db_session)
+    document_index = get_default_document_index(search_settings, None, db_session)
+
+    user_acl_filters = build_access_filters_for_user(user, db_session)
+    inference_chunks = document_index.id_based_retrieval(
+        chunk_requests=[DocumentSectionRequest(document_id=document_id)],
+        filters=IndexFilters(access_control_list=user_acl_filters),
+    )
+
+    if not inference_chunks:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    contents = [chunk.content for chunk in inference_chunks]
+    combined_contents = "\n".join(contents)
+
+    return PlainTextResponse(content=combined_contents)
+
+
 @router.get("/chunk-info", dependencies=[Depends(require_vector_db)])
 def get_chunk_info(
     document_id: str = Query(...),

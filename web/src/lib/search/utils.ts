@@ -39,5 +39,7 @@ export const openDocument = (
     document.source_type === ValidSources.UserFile
   ) {
     updatePresentingDocument?.(document);
+  } else if (document.source_type === ValidSources.Imap) {
+    window.open(`/api/document/content?document_id=${encodeURIComponent(document.document_id)}`, "_blank");
   }
 };
