@@ -1,87 +1,97 @@
-from typing import Any, Iterator
+"""monday.com connector: one document per item, with column values and updates."""
 
-from pydantic import BaseModel
+from datetime import datetime
+from typing import Any
+
 from dateutil import parser
 
 from onyx.configs.constants import DocumentSource
-from onyx.connectors.interfaces import CheckpointedConnector
-from onyx.connectors.interfaces import CheckpointOutput
-from onyx.connectors.interfaces import SecondsSinceUnixEpoch
-from onyx.connectors.interfaces import SlimConnector
-from onyx.connectors.interfaces import GenerateSlimDocumentOutput
-from onyx.connectors.interfaces import IndexingHeartbeatInterface
-from onyx.connectors.models import ConnectorFailure
-from onyx.connectors.models import Document
-from onyx.connectors.models import DocumentFailure
-from onyx.connectors.models import TextSection
-from onyx.connectors.models import SlimDocument
-from onyx.connectors.monday.client import MondayClient
+from onyx.connectors.exceptions import ConnectorValidationError, CredentialExpiredError
+from onyx.connectors.interfaces import (
+    CheckpointedConnector,
+    CheckpointOutput,
+    GenerateSlimDocumentOutput,
+    IndexingHeartbeatInterface,
+    SecondsSinceUnixEpoch,
+    SlimConnector,
+)
+from onyx.connectors.models import (
+    ConnectorCheckpoint,
+    ConnectorFailure,
+    ConnectorMissingCredentialError,
+    Document,
+    DocumentFailure,
+    SlimDocument,
+    TextSection,
+)
+from onyx.connectors.monday.client import MondayApiError, MondayClient
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
 
-
-class MondayConnectorCheckpoint(BaseModel):
-    # To keep things simple for V1, we'll just track the last processed board ID
-    # or keep no state and fetch everything. For now, we'll fetch everything.
-    has_more: bool = True
+_SLIM_BATCH_SIZE = 500
 
 
-class MondayCredentialsNotSetUpError(PermissionError):
-    def __init__(self) -> None:
-        super().__init__("Monday Credentials are not set up, was load_credentials called?")
+class MondayConnectorCheckpoint(ConnectorCheckpoint):
+    # Boards still to sync. None until the first call lists them.
+    todo_board_ids: list[str] | None = None
+
+
+def _document_id(item_id: str) -> str:
+    return f"monday_{item_id}"
+
+
+def _parse_time(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return parser.isoparse(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _last_activity(item: dict[str, Any]) -> datetime | None:
+    """Comments do not change the item's updated_at, so use the newest of both."""
+    times = [_parse_time(item.get("updated_at"))]
+    times += [
+        _parse_time(update.get("created_at")) for update in item.get("updates") or []
+    ]
+    known = [moment for moment in times if moment is not None]
+    return max(known) if known else None
 
 
 class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint], SlimConnector):
     def __init__(self) -> None:
-        self.client: MondayClient | None = None
+        self._client: MondayClient | None = None
 
-    def validate_checkpoint_json(self, checkpoint_json: str) -> MondayConnectorCheckpoint:
-        return MondayConnectorCheckpoint.model_validate_json(checkpoint_json)
-
-    def build_dummy_checkpoint(self) -> MondayConnectorCheckpoint:
-        return MondayConnectorCheckpoint()
+    @property
+    def client(self) -> MondayClient:
+        if self._client is None:
+            raise ConnectorMissingCredentialError("monday.com")
+        return self._client
 
     def load_credentials(self, credentials: dict[str, Any]) -> dict[str, Any] | None:
         token = credentials.get("monday_api_token")
         if not token:
-            raise ValueError("monday_api_token is required")
-            
-        self.client = MondayClient(token)
+            raise ConnectorMissingCredentialError("monday.com")
+        self._client = MondayClient(str(token))
         return None
 
-    def retrieve_all_slim_docs(
-        self,
-        start: SecondsSinceUnixEpoch | None = None,
-        end: SecondsSinceUnixEpoch | None = None,
-        callback: IndexingHeartbeatInterface | None = None,
-    ) -> GenerateSlimDocumentOutput:
-        if self.client is None:
-            raise MondayCredentialsNotSetUpError()
-            
-        slim_docs = []
-        for board in self.client.get_boards():
-            for item in self.client.get_slim_items_for_board(board["id"]):
-                doc_updated_at = None
-                if item.get("updated_at"):
-                    try:
-                        doc_updated_at = parser.isoparse(item["updated_at"])
-                    except Exception:
-                        pass
-                slim_docs.append(
-                    SlimDocument(
-                        id=f"monday_{item['id']}",
-                        doc_created_at=doc_updated_at
-                    )
-                )
-                if len(slim_docs) >= 100:
-                    yield slim_docs
-                    slim_docs = []
-                    if callback:
-                        callback.heartbeat()
-                        
-        if slim_docs:
-            yield slim_docs
+    def validate_connector_settings(self) -> None:
+        try:
+            self.client.execute("query { me { id } }")
+        except PermissionError as e:
+            raise CredentialExpiredError(str(e)) from e
+        except MondayApiError as e:
+            raise ConnectorValidationError(str(e)) from e
+
+    def build_dummy_checkpoint(self) -> MondayConnectorCheckpoint:
+        return MondayConnectorCheckpoint(has_more=True)
+
+    def validate_checkpoint_json(
+        self, checkpoint_json: str
+    ) -> MondayConnectorCheckpoint:
+        return MondayConnectorCheckpoint.model_validate_json(checkpoint_json)
 
     def load_from_checkpoint(
         self,
@@ -89,99 +99,118 @@ class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint], SlimConn
         end: SecondsSinceUnixEpoch,
         checkpoint: MondayConnectorCheckpoint,
     ) -> CheckpointOutput[MondayConnectorCheckpoint]:
-        if self.client is None:
-            raise MondayCredentialsNotSetUpError()
+        checkpoint = checkpoint.model_copy(deep=True)
+        if checkpoint.todo_board_ids is None:
+            checkpoint.todo_board_ids = [
+                str(board["id"]) for board in self.client.get_boards()
+            ]
+            checkpoint.has_more = bool(checkpoint.todo_board_ids)
+            return checkpoint
 
-        logger.info("Starting Monday connector sync...")
-        
-        try:
-            for board in self.client.get_boards():
-                board_id = board["id"]
-                board_name = board.get("name", f"Board {board_id}")
-                
-                logger.info(f"Syncing board: {board_name} (ID: {board_id})")
-                
-                try:
-                    for item in self.client.get_items_for_board(board_id):
-                        item_id = item["id"]
-                        
-                        # Filter by updated_at if we can
-                        doc_updated_at = None
-                        if item.get("updated_at"):
-                            try:
-                                doc_updated_at = parser.isoparse(item["updated_at"])
-                                if start and doc_updated_at.timestamp() < start:
-                                    continue
-                                if end and doc_updated_at.timestamp() > end:
-                                    continue
-                            except Exception:
-                                pass
+        if not checkpoint.todo_board_ids:
+            checkpoint.has_more = False
+            return checkpoint
 
-                        try:
-                            # updates are now fetched directly on the item
-                            updates = item.get("updates") or []
-                            document = self._item_to_document(board, item, updates)
-                            if document:
-                                document.doc_updated_at = doc_updated_at
-                                yield document
-                                
-                        except Exception as e:
-                            logger.error(f"Error processing item {item_id}: {e}")
-                            yield ConnectorFailure(
-                                failed_document=DocumentFailure(
-                                    document_id=f"monday_item_{item_id}",
-                                    document_link=item.get("url", ""),
-                                ),
-                                failure_message=str(e),
-                            )
-                except Exception as e:
-                    logger.error(f"Error processing board {board_id}: {e}")
-                    # Continue with other boards
-                    
-        except Exception as e:
-            logger.error(f"Error fetching Monday boards: {e}")
-            raise
-
-        return MondayConnectorCheckpoint(has_more=False)
-
-    def _item_to_document(self, board: dict, item: dict, updates: list) -> Document | None:
-        item_id = item["id"]
-        item_name = item.get("name", f"Item {item_id}")
-        board_name = board.get("name", "Unknown Board")
-        
-        # Build text content from columns and updates
-        content_parts = [f"Board: {board_name}", f"Item: {item_name}"]
-        
-        column_values = item.get("column_values") or []
-        for col in column_values:
-            if not col:
-                continue
-            col_text = col.get("text")
-            if col_text:
-                content_parts.append(f"{col_text}")
-                
-        if updates:
-            content_parts.append("\nUpdates (Comments):")
-            for update in updates:
-                if not update:
+        # One board per call, so a failed run resumes at the next board.
+        board_id = checkpoint.todo_board_ids.pop()
+        board = self._get_board(board_id)
+        if board is not None:
+            for item in self.client.get_items(board_id):
+                updated_at = _last_activity(item)
+                if updated_at and not (start <= updated_at.timestamp() <= end):
                     continue
-                creator = update.get("creator") or {}
-                creator_name = creator.get("name", "Unknown User")
-                text_body = update.get("text_body", "")
-                if text_body:
-                    content_parts.append(f"{creator_name}: {text_body}")
-                    
-        full_text = "\n".join(content_parts)
-        
-        doc_id = f"monday_{item_id}"
+                try:
+                    yield self._item_to_document(board, item, updated_at)
+                except Exception as e:
+                    logger.exception(
+                        "Failed to convert monday.com item %s", item.get("id")
+                    )
+                    yield ConnectorFailure(
+                        failed_document=DocumentFailure(
+                            document_id=_document_id(str(item.get("id"))),
+                            document_link=item.get("url") or None,
+                        ),
+                        failure_message=str(e),
+                        exception=e,
+                    )
+
+        checkpoint.has_more = bool(checkpoint.todo_board_ids)
+        return checkpoint
+
+    def retrieve_all_slim_docs(
+        self,
+        start: SecondsSinceUnixEpoch | None = None,  # noqa: ARG002
+        end: SecondsSinceUnixEpoch | None = None,  # noqa: ARG002
+        callback: IndexingHeartbeatInterface | None = None,
+    ) -> GenerateSlimDocumentOutput:
+        batch: list[SlimDocument] = []
+        for board in self.client.get_boards():
+            for item in self.client.get_items(str(board["id"]), slim=True):
+                batch.append(SlimDocument(id=_document_id(str(item["id"]))))
+                if len(batch) >= _SLIM_BATCH_SIZE:
+                    yield batch
+                    batch = []
+            if callback:
+                if callback.should_stop():
+                    raise RuntimeError(
+                        "monday.com slim retrieval: stop signal detected"
+                    )
+                callback.progress("monday_slim_retrieval", 1)
+        if batch:
+            yield batch
+
+    def _get_board(self, board_id: str) -> dict[str, Any] | None:
+        boards = (
+            self.client.execute(
+                "query($ids: [ID!]) { boards(ids: $ids) { id name url } }",
+                {"ids": [board_id]},
+            ).get("boards")
+            or []
+        )
+        return boards[0] if boards else None
+
+    @staticmethod
+    def _item_to_document(
+        board: dict[str, Any], item: dict[str, Any], updated_at: datetime | None
+    ) -> Document:
+        item_id = str(item["id"])
+        item_name = item.get("name") or f"Item {item_id}"
+        board_name = board.get("name") or "Board"
+        group = (item.get("group") or {}).get("title")
+
+        lines = [f"Board: {board_name}"]
+        if group:
+            lines.append(f"Group: {group}")
+        lines.append(f"Item: {item_name}")
+        for column in item.get("column_values") or []:
+            text = (column or {}).get("text")
+            title = ((column or {}).get("column") or {}).get("title")
+            if text:
+                lines.append(f"{title}: {text}" if title else text)
+
+        updates = [
+            update for update in item.get("updates") or [] if update.get("text_body")
+        ]
+        if updates:
+            lines.append("")
+            lines.append("Updates:")
+            # The API returns the newest first; read them in order.
+            for update in reversed(updates):
+                author = (update.get("creator") or {}).get("name") or "Unknown"
+                lines.append(
+                    f"{author} ({update.get('created_at', '')[:10]}): {update['text_body']}"
+                )
+
+        metadata: dict[str, str | list[str]] = {"board": board_name}
+        if group:
+            metadata["group"] = group
 
         return Document(
-            id=doc_id,
-            sections=[TextSection(text=full_text, link=item.get("url", ""))],
+            id=_document_id(item_id),
+            sections=[TextSection(text="\n".join(lines), link=item.get("url") or None)],
             source=DocumentSource.MONDAY,
-            semantic_identifier=f"{board_name} - {item_name}",
-            metadata={},
-            doc_updated_at=None, # Populated by caller
-            primary_owners=None,
-            secondary_owners=None,
+            semantic_identifier=item_name,
+            title=item_name,
+            metadata=metadata,
+            doc_updated_at=updated_at,
         )
