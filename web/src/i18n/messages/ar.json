@@ -4805,6 +4805,10 @@
             "file_extensions": {
               "label": "امتدادات الملفات",
               "description": "قائمة اختيارية بامتدادات الملفات المراد تضمينها (مثل .pdf و.docx و.txt)."
+            },
+            "nextcloud_server_url": {
+              "label": "عنوان URL لـ Nextcloud",
+              "placeholder": "https://cloud.example.com"
             }
           }
         },

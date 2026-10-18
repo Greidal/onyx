@@ -2306,7 +2306,18 @@ export const connectorConfigs: Record<
   },
   nextcloud: {
     description: "connectors.nextcloud.description",
-    values: [],
+    values: [
+      {
+        // Realm of the credential: asked above the account, kept out of the
+        // connector config.
+        type: "text",
+        label: "connectors.nextcloud.fields.nextcloud_server_url.label",
+        name: "nextcloud_server_url",
+        optional: false,
+        placeholder: "connectors.nextcloud.fields.nextcloud_server_url.placeholder",
+        subDescription: "siteUrl",
+      },
+    ],
     advanced_values: [
       {
         type: "text",

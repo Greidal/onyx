@@ -4805,6 +4805,10 @@
             "file_extensions": {
               "label": "Dateiendungen",
               "description": "Optionale Liste der Dateiendungen, die indexiert werden (z. B. .pdf, .docx, .txt)."
+            },
+            "nextcloud_server_url": {
+              "label": "Nextcloud-URL",
+              "placeholder": "https://cloud.example.com"
             }
           }
         },
