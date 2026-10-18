@@ -54,5 +54,16 @@ export const openDocument = (
     document.source_type === ValidSources.UserFile
   ) {
     updatePresentingDocument?.(document);
+  } else if (document.source_type === ValidSources.Imap) {
+    openIndexedDocumentContent(document.document_id);
   }
 };
+
+// For sources without a browsable link (e.g. IMAP): show the indexed text.
+export function openIndexedDocumentContent(documentId: string) {
+  window.open(
+    `/api/document/content?document_id=${encodeURIComponent(documentId)}`,
+    "_blank",
+    "noopener,noreferrer"
+  );
+}

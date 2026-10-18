@@ -322,10 +322,12 @@ class DocumentSource(str, Enum):
     AIRTABLE = "airtable"
     HIGHSPOT = "highspot"
     DRUPAL_WIKI = "drupal_wiki"
+    NEXTCLOUD = "nextcloud"
 
     IMAP = "imap"
     BITBUCKET = "bitbucket"
     TESTRAIL = "testrail"
+    MONDAY = "monday"
     BRAINTRUST = "braintrust"
     LUMAPPS = "lumapps"
     YOUTRACK = "youtrack"
@@ -837,7 +839,9 @@ DocumentSourceDescription: dict[DocumentSource, str] = {
     DocumentSource.AIRTABLE: "Structured data and records",
     DocumentSource.HIGHSPOT: "Sales enablement content and pitches",
     DocumentSource.DRUPAL_WIKI: "Knowledge base pages and content",
+    DocumentSource.NEXTCLOUD: "Files and documents in Nextcloud",
     DocumentSource.IMAP: "Email messages and threads",
+    DocumentSource.MONDAY: "Boards, items, and updates in monday.com",
     DocumentSource.TESTRAIL: "Test cases and QA management",
     DocumentSource.BRAINTRUST: "LLM eval experiments, datasets, and prompts",
     DocumentSource.LUMAPPS: "Intranet pages, news, and content",

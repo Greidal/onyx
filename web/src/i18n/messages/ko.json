@@ -1551,6 +1551,12 @@
         },
         "federatedSlack": {
           "description": "질의 시 Slack 검색"
+        },
+        "nextcloud": {
+          "description": "WebDAV를 통한 Nextcloud 파일"
+        },
+        "monday": {
+          "description": "monday.com 보드 및 항목"
         }
       }
     },
@@ -4782,8 +4788,28 @@
             "mailboxes": {
               "label": "사서함",
               "description": "인덱싱할 사서함을 지정하세요 (예: INBOX, Sent, Drafts). 비워 두면 모든 사서함을 인덱싱합니다."
+            },
+            "index_attachments": {
+              "label": "첨부 파일 인덱싱",
+              "description": "이메일 첨부 파일의 텍스트를 추출하여 인덱싱합니다."
             }
           }
+        },
+        "nextcloud": {
+          "description": "Nextcloud 커넥터 구성",
+          "fields": {
+            "path_filter": {
+              "label": "경로 필터",
+              "description": "인덱싱을 제한할 폴더(선택 사항, 예: /Documents)."
+            },
+            "file_extensions": {
+              "label": "파일 확장자",
+              "description": "포함할 파일 확장자 목록(선택 사항, 예: .pdf, .docx, .txt)."
+            }
+          }
+        },
+        "monday": {
+          "description": "monday.com 커넥터 구성"
         }
       }
     },

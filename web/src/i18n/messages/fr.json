@@ -1551,6 +1551,12 @@
         },
         "federatedSlack": {
           "description": "Rechercher dans Slack à la requête"
+        },
+        "nextcloud": {
+          "description": "Fichiers Nextcloud via WebDAV"
+        },
+        "monday": {
+          "description": "Tableaux et éléments monday.com"
         }
       }
     },
@@ -4782,8 +4788,28 @@
             "mailboxes": {
               "label": "Boîtes aux lettres",
               "description": "Indiquez les boîtes aux lettres à indexer (par ex. INBOX, Sent, Drafts). Laissez vide pour indexer toutes les boîtes aux lettres."
+            },
+            "index_attachments": {
+              "label": "Indexer les pièces jointes",
+              "description": "Extraire et indexer le texte des pièces jointes des e-mails."
             }
           }
+        },
+        "nextcloud": {
+          "description": "Configurer le connecteur Nextcloud",
+          "fields": {
+            "path_filter": {
+              "label": "Filtre de chemin",
+              "description": "Dossier facultatif auquel limiter l'indexation (p. ex. /Documents)."
+            },
+            "file_extensions": {
+              "label": "Extensions de fichier",
+              "description": "Liste facultative des extensions de fichier à inclure (p. ex. .pdf, .docx, .txt)."
+            }
+          }
+        },
+        "monday": {
+          "description": "Configurer le connecteur monday.com"
         }
       }
     },

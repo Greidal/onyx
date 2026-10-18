@@ -1551,6 +1551,12 @@
         },
         "federatedSlack": {
           "description": "البحث في Slack عند الاستعلام"
+        },
+        "nextcloud": {
+          "description": "ملفات Nextcloud عبر WebDAV"
+        },
+        "monday": {
+          "description": "لوحات وعناصر monday.com"
         }
       }
     },
@@ -4782,8 +4788,28 @@
             "mailboxes": {
               "label": "صناديق البريد",
               "description": "حدّد صناديق البريد المراد فهرستها (مثل INBOX وSent وDrafts). اتركه فارغًا لفهرسة جميع صناديق البريد."
+            },
+            "index_attachments": {
+              "label": "فهرسة المرفقات",
+              "description": "استخراج النص من مرفقات البريد الإلكتروني وفهرسته."
             }
           }
+        },
+        "nextcloud": {
+          "description": "تهيئة موصل Nextcloud",
+          "fields": {
+            "path_filter": {
+              "label": "عامل تصفية المسار",
+              "description": "مجلد اختياري لقصر الفهرسة عليه (مثل /Documents)."
+            },
+            "file_extensions": {
+              "label": "امتدادات الملفات",
+              "description": "قائمة اختيارية بامتدادات الملفات المراد تضمينها (مثل .pdf و.docx و.txt)."
+            }
+          }
+        },
+        "monday": {
+          "description": "تهيئة موصل monday.com"
         }
       }
     },

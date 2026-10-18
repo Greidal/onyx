@@ -1551,6 +1551,12 @@
         },
         "federatedSlack": {
           "description": "查询时搜索 Slack"
+        },
+        "nextcloud": {
+          "description": "通过 WebDAV 访问的 Nextcloud 文件"
+        },
+        "monday": {
+          "description": "monday.com 看板和条目"
         }
       }
     },
@@ -4782,8 +4788,28 @@
             "mailboxes": {
               "label": "邮箱",
               "description": "指定要索引的邮箱（例如 INBOX、Sent、Drafts）。留空则索引所有邮箱。"
+            },
+            "index_attachments": {
+              "label": "索引附件",
+              "description": "从电子邮件附件中提取并索引文本。"
             }
           }
+        },
+        "nextcloud": {
+          "description": "配置 Nextcloud 连接器",
+          "fields": {
+            "path_filter": {
+              "label": "路径筛选",
+              "description": "可选：仅索引此文件夹（例如 /Documents）。"
+            },
+            "file_extensions": {
+              "label": "文件扩展名",
+              "description": "可选：要包含的文件扩展名列表（例如 .pdf、.docx、.txt）。"
+            }
+          }
+        },
+        "monday": {
+          "description": "配置 monday.com 连接器"
         }
       }
     },

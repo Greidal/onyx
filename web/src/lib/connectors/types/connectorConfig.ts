@@ -258,6 +258,12 @@ export interface ImapConfig {
   host: string;
   port?: number;
   mailboxes?: string[];
+  index_attachments?: boolean;
+}
+
+export interface NextcloudConfig {
+  path_filter?: string;
+  file_extensions?: string[];
 }
 
 /** A stored connector setting: the JSON the form saved. */

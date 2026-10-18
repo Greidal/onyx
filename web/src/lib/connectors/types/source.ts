@@ -70,6 +70,8 @@ export enum ValidSources {
   YouTrack = "youtrack",
   Canvas = "canvas",
   Zoom = "zoom",
+  Nextcloud = "nextcloud",
+  Monday = "monday",
 
   // Craft-specific sources
   CraftFile = "craft_file",

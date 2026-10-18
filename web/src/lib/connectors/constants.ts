@@ -41,6 +41,8 @@ import {
   SvgLumApps,
   SvgYouTrack,
   SvgMediaWiki,
+  SvgMonday,
+  SvgNextcloud,
   SvgNotion,
   SvgOneDrive,
   SvgOracle,
@@ -140,6 +142,8 @@ export const SOURCE_DESCRIPTION_KEYS = {
   [ValidSources.Highspot]: "sources.highspot.description",
   [ValidSources.DrupalWiki]: "sources.drupalWiki.description",
   [ValidSources.Imap]: "sources.imap.description",
+  [ValidSources.Nextcloud]: "sources.nextcloud.description",
+  [ValidSources.Monday]: "sources.monday.description",
   [ValidSources.Bitbucket]: "sources.bitbucket.description",
   [ValidSources.TestRail]: "sources.testrail.description",
   [ValidSources.Braintrust]: "sources.braintrust.description",
@@ -352,6 +356,11 @@ export const SOURCE_METADATA_MAP: SourceMap = {
     category: SourceCategory.Storage,
     docs: `${DOCS_ADMINS_PATH}/connectors/official/r2`,
   },
+  nextcloud: {
+    icon: SvgNextcloud,
+    displayName: "Nextcloud",
+    category: SourceCategory.Storage,
+  },
 
   // Ticketing & Task Management
   jira: {
@@ -379,6 +388,11 @@ export const SOURCE_METADATA_MAP: SourceMap = {
     displayName: "Linear",
     category: SourceCategory.TicketingAndTaskManagement,
     docs: `${DOCS_ADMINS_PATH}/connectors/official/linear`,
+  },
+  monday: {
+    icon: SvgMonday,
+    displayName: "monday.com",
+    category: SourceCategory.TicketingAndTaskManagement,
   },
   youtrack: {
     icon: SvgYouTrack,

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
 from onyx.access.access import censor_chunks_for_user
@@ -13,6 +14,8 @@ from onyx.db.models import User
 from onyx.db.search_settings import get_current_search_settings
 from onyx.document_index.factory import get_default_document_index
 from onyx.document_index.interfaces import DocumentSectionRequest
+from onyx.error_handling.error_codes import OnyxErrorCode
+from onyx.error_handling.exceptions import OnyxError
 from onyx.natural_language_processing.utils import get_tokenizer
 from onyx.prompts.prompt_utils import build_doc_context_str
 from onyx.server.documents.models import ChunkInfo, DocumentInfo
@@ -69,6 +72,38 @@ def get_document_info(
     return DocumentInfo(
         num_chunks=len(inference_chunks),
         num_tokens=len(tokenizer_encode(full_context_str)),
+    )
+
+
+@router.get("/content", dependencies=[Depends(require_vector_db)])
+def get_document_content(
+    document_id: str = Query(...),
+    user: User = Depends(require_permission(Permission.BASIC_ACCESS)),
+    db_session: Session = Depends(get_session),
+) -> PlainTextResponse:
+    """Returns the indexed text of a document. Used for sources without a
+    browsable link (e.g. IMAP)."""
+    search_settings = get_current_search_settings(db_session)
+    document_index = get_default_document_index(search_settings, None)
+
+    user_access_filters = build_access_filters_for_user(user, db_session)
+    inference_chunks = censor_chunks_for_user(
+        document_index.id_based_retrieval(
+            chunk_requests=[DocumentSectionRequest(document_id=document_id)],
+            filters=IndexFilters(
+                access_control_list=user_access_filters.access_control_list,
+                cc_pair_access=user_access_filters.cc_pair_access,
+            ),
+        ),
+        user,
+    )
+
+    if not inference_chunks:
+        raise OnyxError(OnyxErrorCode.NOT_FOUND, "Document not found")
+
+    return PlainTextResponse(
+        content="\n".join(chunk.content for chunk in inference_chunks),
+        headers={"X-Content-Type-Options": "nosniff"},
     )
 
 

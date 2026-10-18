@@ -2,7 +2,12 @@ import os
 from typing import Annotated
 
 from onyx.connectors.connector_config import ConnectorConfig, CredentialBinding
-from onyx.connectors.field_policy import FieldClass, FieldPolicy, ScopeInclude
+from onyx.connectors.field_policy import (
+    FieldClass,
+    FieldPolicy,
+    ScopeInclude,
+    ScopeToggle,
+)
 
 DEFAULT_IMAP_PORT_NUMBER = int(os.environ.get("IMAP_PORT", 993))
 
@@ -18,3 +23,6 @@ class ImapConnectorConfig(ImapCredentialBinding, ConnectorConfig):
         list[str] | None,
         FieldPolicy(FieldClass.SCOPE, scope=ScopeInclude(empty_means_all=True)),
     ] = None
+    index_attachments: Annotated[
+        bool, FieldPolicy(FieldClass.SCOPE, scope=ScopeToggle(widens_when=True))
+    ] = True

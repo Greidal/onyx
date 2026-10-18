@@ -580,6 +580,19 @@ export const CREDENTIAL_SPECS = {
       imap_password: secret("password"),
     },
   }),
+  nextcloud: defineCredentialSpec({
+    brandName: "Nextcloud",
+    fields: {
+      nextcloud_server_url: url("url", { realm: true }),
+      nextcloud_username: text("username"),
+      // An app password, not the account password.
+      nextcloud_password: secret("password"),
+    },
+  }),
+  monday: defineCredentialSpec({
+    brandName: "monday.com",
+    fields: { monday_api_token: secret("apiToken") },
+  }),
   testrail: defineCredentialSpec({
     brandName: "TestRail",
     fields: {

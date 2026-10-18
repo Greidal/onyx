@@ -8,6 +8,7 @@ import Chip from "@/refresh-components/Chip";
 import { buildDocumentSummaryDisplay } from "@/components/search/DocumentDisplay";
 import { ValidSources } from "@/lib/connectors/types/source";
 import { MinimalOnyxDocument } from "@/lib/search/types";
+import { openIndexedDocumentContent } from "@/lib/search/utils";
 import { Section } from "@/layouts/general-layouts";
 import { Interactive } from "@opal/core";
 import Truncated from "@/refresh-components/texts/Truncated";
@@ -41,6 +42,10 @@ export default function SearchCard({
   function handleClick() {
     if (document.link) {
       window.open(document.link, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (document.source_type === ValidSources.Imap) {
+      openIndexedDocumentContent(document.document_id);
       return;
     }
     onDocumentClick({

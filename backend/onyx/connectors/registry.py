@@ -42,6 +42,8 @@ from onyx.connectors.loopio.config import LoopioConnectorConfig
 from onyx.connectors.lumapps.config import LumAppsConnectorConfig
 from onyx.connectors.mediawiki.config import MediaWikiConnectorConfig
 from onyx.connectors.mock_connector.config import MockConnectorConfig
+from onyx.connectors.monday.config import MondayConnectorConfig
+from onyx.connectors.nextcloud.config import NextcloudConnectorConfig
 from onyx.connectors.notion.config import NotionConnectorConfig
 from onyx.connectors.onedrive.config import OneDriveConnectorConfig
 from onyx.connectors.outline.config import OutlineConnectorConfig
@@ -330,6 +332,11 @@ CONNECTOR_CLASS_MAP = {
         class_name="DrupalWikiConnector",
         config_class=DrupalWikiConnectorConfig,
     ),
+    DocumentSource.NEXTCLOUD: ConnectorMapping(
+        module_path="onyx.connectors.nextcloud.connector",
+        class_name="NextcloudConnector",
+        config_class=NextcloudConnectorConfig,
+    ),
     DocumentSource.IMAP: ConnectorMapping(
         module_path="onyx.connectors.imap.connector",
         class_name="ImapConnector",
@@ -344,6 +351,11 @@ CONNECTOR_CLASS_MAP = {
         module_path="onyx.connectors.testrail.connector",
         class_name="TestRailConnector",
         config_class=TestRailConnectorConfig,
+    ),
+    DocumentSource.MONDAY: ConnectorMapping(
+        module_path="onyx.connectors.monday.connector",
+        class_name="MondayConnector",
+        config_class=MondayConnectorConfig,
     ),
     DocumentSource.BRAINTRUST: ConnectorMapping(
         module_path="onyx.connectors.braintrust.connector",

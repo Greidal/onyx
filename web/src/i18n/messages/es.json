@@ -1551,6 +1551,12 @@
         },
         "federatedSlack": {
           "description": "Buscar en Slack al consultar"
+        },
+        "nextcloud": {
+          "description": "Archivos de Nextcloud mediante WebDAV"
+        },
+        "monday": {
+          "description": "Tableros y elementos de monday.com"
         }
       }
     },
@@ -4782,8 +4788,28 @@
             "mailboxes": {
               "label": "Buzones",
               "description": "Especifica los buzones a indexar (p. ej., INBOX, Sent, Drafts). Déjalo vacío para indexar todos los buzones."
+            },
+            "index_attachments": {
+              "label": "Indexar adjuntos",
+              "description": "Extraer e indexar el texto de los adjuntos de correo."
             }
           }
+        },
+        "nextcloud": {
+          "description": "Configurar el conector de Nextcloud",
+          "fields": {
+            "path_filter": {
+              "label": "Filtro de ruta",
+              "description": "Carpeta opcional a la que limitar la indexación (p. ej. /Documentos)."
+            },
+            "file_extensions": {
+              "label": "Extensiones de archivo",
+              "description": "Lista opcional de extensiones de archivo que incluir (p. ej. .pdf, .docx, .txt)."
+            }
+          }
+        },
+        "monday": {
+          "description": "Configurar el conector de monday.com"
         }
       }
     },

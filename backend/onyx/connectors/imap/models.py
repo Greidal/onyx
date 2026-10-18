@@ -39,7 +39,10 @@ class EmailHeaders(BaseModel):
             decoded_value, encoding = email.header.decode_header(value)[0]
             if isinstance(decoded_value, bytes):
                 encoding = encoding or "utf-8"
-                return decoded_value.decode(encoding, errors="replace")
+                try:
+                    return decoded_value.decode(encoding, errors="replace")
+                except LookupError:
+                    return decoded_value.decode("utf-8", errors="replace")
             elif isinstance(decoded_value, str):
                 return decoded_value
             else:
@@ -54,17 +57,23 @@ class EmailHeaders(BaseModel):
                 return None
 
         message_id = _decode(header=Header.MESSAGE_ID_HEADER)
-        # It's possible for the subject line to not exist or be an empty string.
         subject = _decode(header=Header.SUBJECT_HEADER) or "Unknown Subject"
-        from_ = _decode(header=Header.FROM_HEADER)
+        from_ = _decode(header=Header.FROM_HEADER) or "Unknown Sender"
         to = _decode(header=Header.TO_HEADER)
         if not to:
             to = _decode(header=Header.DELIVERED_TO_HEADER)
+            
         date_str = _decode(header=Header.DATE_HEADER)
         date = _parse_date(date_str=date_str)
+        if not date:
+            from datetime import timezone
+            date = datetime.now(timezone.utc)
 
-        # If any of the above are `None`, model validation will fail.
-        # Therefore, no guards (i.e.: `if <header> is None: raise RuntimeError(..)`) were written.
+        if not message_id:
+            import hashlib
+            raw_id_data = f"{from_}-{date_str or ''}-{subject}"
+            message_id = f"gen_{hashlib.md5(raw_id_data.encode('utf-8', errors='ignore')).hexdigest()}"
+
         return cls.model_validate(
             {
                 "id": message_id,

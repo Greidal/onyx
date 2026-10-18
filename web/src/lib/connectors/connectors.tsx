@@ -2293,7 +2293,40 @@ export const connectorConfigs: Record<
         optional: true,
         description: "connectors.imap.fields.mailboxes.description",
       },
+      {
+        type: "checkbox",
+        label: "connectors.imap.fields.index_attachments.label",
+        name: "index_attachments",
+        optional: true,
+        default: true,
+        description: "connectors.imap.fields.index_attachments.description",
+      },
     ],
+    advanced_values: [],
+  },
+  nextcloud: {
+    description: "connectors.nextcloud.description",
+    values: [],
+    advanced_values: [
+      {
+        type: "text",
+        label: "connectors.nextcloud.fields.path_filter.label",
+        name: "path_filter",
+        optional: true,
+        description: "connectors.nextcloud.fields.path_filter.description",
+      },
+      {
+        type: "list",
+        label: "connectors.nextcloud.fields.file_extensions.label",
+        name: "file_extensions",
+        optional: true,
+        description: "connectors.nextcloud.fields.file_extensions.description",
+      },
+    ],
+  },
+  monday: {
+    description: "connectors.monday.description",
+    values: [],
     advanced_values: [],
   },
 };

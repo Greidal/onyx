@@ -1551,6 +1551,12 @@
         },
         "federatedSlack": {
           "description": "クエリ時に Slack を検索"
+        },
+        "nextcloud": {
+          "description": "WebDAV 経由の Nextcloud ファイル"
+        },
+        "monday": {
+          "description": "monday.com のボードとアイテム"
         }
       }
     },
@@ -4782,8 +4788,28 @@
             "mailboxes": {
               "label": "メールボックス",
               "description": "インデックスするメールボックスを指定します(例: INBOX、Sent、Drafts)。空欄の場合は、すべてのメールボックスをインデックスします。"
+            },
+            "index_attachments": {
+              "label": "添付ファイルをインデックス",
+              "description": "メールの添付ファイルからテキストを抽出してインデックスします。"
             }
           }
+        },
+        "nextcloud": {
+          "description": "Nextcloud コネクタを設定",
+          "fields": {
+            "path_filter": {
+              "label": "パスフィルター",
+              "description": "インデックス対象を限定するフォルダー（任意、例: /Documents）。"
+            },
+            "file_extensions": {
+              "label": "ファイル拡張子",
+              "description": "含めるファイル拡張子のリスト（任意、例: .pdf, .docx, .txt）。"
+            }
+          }
+        },
+        "monday": {
+          "description": "monday.com コネクタを設定"
         }
       }
     },
