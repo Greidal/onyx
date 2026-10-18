@@ -4805,6 +4805,10 @@
             "file_extensions": {
               "label": "Extensiones de archivo",
               "description": "Lista opcional de extensiones de archivo que incluir (p. ej. .pdf, .docx, .txt)."
+            },
+            "nextcloud_server_url": {
+              "label": "URL de Nextcloud",
+              "placeholder": "https://cloud.example.com"
             }
           }
         },

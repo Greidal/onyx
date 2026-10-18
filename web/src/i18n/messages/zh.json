@@ -4805,6 +4805,10 @@
             "file_extensions": {
               "label": "文件扩展名",
               "description": "可选：要包含的文件扩展名列表（例如 .pdf、.docx、.txt）。"
+            },
+            "nextcloud_server_url": {
+              "label": "Nextcloud 网址",
+              "placeholder": "https://cloud.example.com"
             }
           }
         },

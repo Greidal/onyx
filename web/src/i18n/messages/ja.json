@@ -4805,6 +4805,10 @@
             "file_extensions": {
               "label": "ファイル拡張子",
               "description": "含めるファイル拡張子のリスト（任意、例: .pdf, .docx, .txt）。"
+            },
+            "nextcloud_server_url": {
+              "label": "Nextcloud の URL",
+              "placeholder": "https://cloud.example.com"
             }
           }
         },
