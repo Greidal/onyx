@@ -17,8 +17,13 @@ Multi-tenant cloud gating lives in `multi_tenant_gating_config.py` and is
 deliberately separate — cloud uses subscriptions, not licenses.
 """
 
+import os
+
 from onyx.server.gateway.configs import GATEWAY_PATH_PREFIX, LLM_GATEWAY_MIN_TIER
 from onyx.server.settings.models import Tier
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 # Paths that are ALWAYS accessible, even when license is expired/gated.
 # These enable users to:
@@ -92,3 +97,25 @@ PATH_PREFIX_MIN_TIER: dict[str, Tier] = {
     "/evals": Tier.ENTERPRISE,
     "/scim": Tier.ENTERPRISE,  # SCIM protocol
 }
+
+
+def _load_test_tier_override() -> Tier | None:
+    raw = os.environ.get("ONYX_TEST_TIER_OVERRIDE", "").strip().lower()
+    if not raw:
+        return None
+    try:
+        tier = Tier(raw)
+    except ValueError:
+        logger.error("Ignoring ONYX_TEST_TIER_OVERRIDE=%r: not a known tier.", raw)
+        return None
+    logger.warning(
+        "ONYX_TEST_TIER_OVERRIDE=%s: a deployment without a license runs as this "
+        "tier. Use this only for development and testing.",
+        tier.value,
+    )
+    return tier
+
+
+# Development and testing only: the tier a self-hosted deployment without a
+# license resolves to. An expired (gated) license still resolves to COMMUNITY.
+TEST_TIER_OVERRIDE: Tier | None = _load_test_tier_override()

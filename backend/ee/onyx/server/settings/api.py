@@ -2,6 +2,7 @@
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from ee.onyx.configs.license_enforcement_config import TEST_TIER_OVERRIDE
 from ee.onyx.db.license import get_cached_license_metadata, refresh_license_cache
 from ee.onyx.utils.tier import get_tier, tier_from_license_metadata
 from onyx.cache.interface import CACHE_TRANSIENT_ERRORS
@@ -75,6 +76,8 @@ def apply_license_status_to_settings(settings: Settings) -> Settings:
             else:
                 # Has a valid license (GRACE_PERIOD/PAYMENT_REMINDER still allow EE features)
                 settings.ee_features_enabled = True
+        elif TEST_TIER_OVERRIDE is not None:
+            settings.ee_features_enabled = True
         else:
             # No license found in cache or DB.
             if _has_perm_synced_cc_pairs():

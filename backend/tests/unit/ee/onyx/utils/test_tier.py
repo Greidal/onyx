@@ -351,3 +351,26 @@ def test_cloud_tier_missing_data_is_not_a_confirmed_miss() -> None:
     ):
         assert get_tier("tenant-a") == Tier.BUSINESS
         mark.assert_not_called()
+
+
+def test_test_tier_override_applies_without_license(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ee.onyx.utils import tier as tier_module
+
+    monkeypatch.setattr(tier_module, "TEST_TIER_OVERRIDE", Tier.ENTERPRISE)
+    assert tier_module.tier_from_license_metadata(None) == Tier.ENTERPRISE
+
+    gated = MagicMock(status=ApplicationStatus.GATED_ACCESS)
+    assert tier_module.tier_from_license_metadata(gated) == Tier.COMMUNITY
+
+
+def test_test_tier_override_parses_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    from ee.onyx.configs import license_enforcement_config as config
+
+    monkeypatch.setenv("ONYX_TEST_TIER_OVERRIDE", "Enterprise")
+    assert config._load_test_tier_override() == Tier.ENTERPRISE
+    monkeypatch.setenv("ONYX_TEST_TIER_OVERRIDE", "platinum")
+    assert config._load_test_tier_override() is None
+    monkeypatch.delenv("ONYX_TEST_TIER_OVERRIDE")
+    assert config._load_test_tier_override() is None

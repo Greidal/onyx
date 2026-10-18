@@ -18,6 +18,7 @@ import requests
 from redis.exceptions import RedisError
 from sqlalchemy.exc import ProgrammingError, SQLAlchemyError
 
+from ee.onyx.configs.license_enforcement_config import TEST_TIER_OVERRIDE
 from ee.onyx.db.license import get_cached_license_metadata, refresh_license_cache
 from ee.onyx.server.license.models import CustomerTier
 from ee.onyx.server.tenants.billing import fetch_billing_information
@@ -60,7 +61,7 @@ def tier_from_license_metadata(metadata: object | None) -> Tier:
     in hand.
     """
     if metadata is None:
-        return Tier.COMMUNITY
+        return TEST_TIER_OVERRIDE or Tier.COMMUNITY
     status = getattr(metadata, "status", None)  # ods: ignore[getattr]
     if status == ApplicationStatus.GATED_ACCESS:
         return Tier.COMMUNITY
