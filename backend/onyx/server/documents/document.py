@@ -18,6 +18,7 @@ from onyx.error_handling.error_codes import OnyxErrorCode
 from onyx.error_handling.exceptions import OnyxError
 from onyx.natural_language_processing.utils import get_tokenizer
 from onyx.prompts.prompt_utils import build_doc_context_str
+from onyx.server.documents.document_text import render_document_text
 from onyx.server.documents.models import ChunkInfo, DocumentInfo
 from onyx.server.utils_vector_db import require_vector_db
 
@@ -102,7 +103,7 @@ def get_document_content(
         raise OnyxError(OnyxErrorCode.NOT_FOUND, "Document not found")
 
     return PlainTextResponse(
-        content="\n".join(chunk.content for chunk in inference_chunks),
+        content=render_document_text(inference_chunks),
         headers={"X-Content-Type-Options": "nosniff"},
     )
 
