@@ -3,6 +3,8 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import quote
 
+import pytest
+
 from onyx.connectors.nextcloud import connector as nextcloud_connector
 from onyx.connectors.nextcloud.client import NextcloudWebDAVClient
 from onyx.connectors.nextcloud.connector import NextcloudConnector
@@ -138,7 +140,7 @@ def test_documents_use_extracted_text_links_and_extension_filter() -> None:
     assert pdf.id == "nextcloud_20"
     assert pdf.sections[0].text == "text of Pläne & Aufbau.pdf"
     assert pdf.sections[0].link == f"{_SERVER}/f/20"
-    assert pdf.metadata == {"folder": "/Messe 2026", "owner": "Erika"}
+    assert pdf.metadata == {"folder": "/Messe 2026", "owner": "Erika", "year": "2026"}
     assert pdf.title == "Messe 2026 / Pläne & Aufbau.pdf"
     assert pdf.doc_updated_at == datetime(2026, 10, 16, 10, tzinfo=timezone.utc)
 
@@ -206,3 +208,38 @@ def test_server_url_is_not_masked_so_saved_accounts_can_be_reused() -> None:
     )
     assert masked["nextcloud_server_url"] == _SERVER
     assert masked["nextcloud_password"] != "app-password-123456"
+
+
+def test_excluded_folders_are_not_listed_and_globs_match_files() -> None:
+    connector = _connector(excluded_paths=["archiv", "*.md", " "])
+    names = {f.name for f in connector._iter_indexable_files(modified_since=None)}
+    assert names == {"Pläne & Aufbau.pdf"}
+    listed = [call.args[1] for call in connector.client.session.request.call_args_list]
+    assert not any("Archiv" in url for url in listed)
+
+
+def test_excluded_folders_drop_out_of_slim_docs_for_pruning() -> None:
+    connector = _connector(excluded_paths=["/Messe 2026/"])
+    ids = {doc.id for batch in connector.retrieve_all_slim_docs() for doc in batch}
+    assert ids == {"nextcloud_12", "nextcloud_30"}
+
+
+@pytest.mark.parametrize(
+    "path, year",
+    [
+        ("/Ressorts/MKOR/MKOR_26/Zeitplan.docx", "2026"),
+        ("/Ressorts/DES/DES25/Plakat.pdf", "2025"),
+        ("/Ressorts/MAUS/Maus 26/Räume.xlsx", "2026"),
+        ("/Ressorts/CAT/00_CAT26/Menü.pdf", "2026"),
+        ("/Allgemein/CONNECTA-2025/Mappe.pdf", "2025"),
+        # The deepest folder wins.
+        ("/Ressorts/MKOR/MKOR_26/Vorlagen 2019/Brief.docx", "2019"),
+        # File names do not count: copies often keep last year's content.
+        ("/Allgemein/Vorlagen/Zeitplan_2026.docx", None),
+        ("/Ressorts/IT/02_InExtranet/dump.sql", None),
+        ("/Allgemein/Raum K002/Plan.pdf", None),
+        ("/Notizen.md", None),
+    ],
+)
+def test_project_year_comes_from_the_folder_name(path: str, year: str | None) -> None:
+    assert nextcloud_connector._project_year(path) == year

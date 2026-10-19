@@ -4789,6 +4789,10 @@
               "label": "Caixas de correio",
               "description": "Especifique as caixas de correio a indexar (por exemplo, INBOX, Sent, Drafts). Deixe vazio para indexar todas as caixas de correio."
             },
+            "excluded_mailboxes": {
+              "label": "Caixas de correio excluídas",
+              "description": "Opcional: caixas de correio a ignorar, incluindo as subpastas. Curingas permitidos, p. ex. Trash, Drafts, *Spam*."
+            },
             "index_attachments": {
               "label": "Indexar anexos",
               "description": "Extrair e indexar o texto dos anexos de e-mail."
@@ -4813,6 +4817,10 @@
             "path_filters": {
               "label": "Pastas",
               "description": "Opcional: uma ou mais pastas a indexar (ex.: /Documentos/Projetos). Deixe vazio para indexar tudo."
+            },
+            "excluded_paths": {
+              "label": "Pastas excluídas",
+              "description": "Opcional: pastas ou arquivos a ignorar, incluindo tudo abaixo deles. Curingas permitidos, p. ex. Fotos, Arquivo/2020, *.tmp."
             }
           }
         },

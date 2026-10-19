@@ -2294,6 +2294,13 @@ export const connectorConfigs: Record<
         description: "connectors.imap.fields.mailboxes.description",
       },
       {
+        type: "list",
+        label: "connectors.imap.fields.excluded_mailboxes.label",
+        name: "excluded_mailboxes",
+        optional: true,
+        description: "connectors.imap.fields.excluded_mailboxes.description",
+      },
+      {
         type: "checkbox",
         label: "connectors.imap.fields.index_attachments.label",
         name: "index_attachments",
@@ -2325,6 +2332,13 @@ export const connectorConfigs: Record<
         name: "path_filters",
         optional: true,
         description: "connectors.nextcloud.fields.path_filters.description",
+      },
+      {
+        type: "list",
+        label: "connectors.nextcloud.fields.excluded_paths.label",
+        name: "excluded_paths",
+        optional: true,
+        description: "connectors.nextcloud.fields.excluded_paths.description",
       },
       {
         type: "list",

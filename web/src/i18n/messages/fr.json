@@ -4789,6 +4789,10 @@
               "label": "Boîtes aux lettres",
               "description": "Indiquez les boîtes aux lettres à indexer (par ex. INBOX, Sent, Drafts). Laissez vide pour indexer toutes les boîtes aux lettres."
             },
+            "excluded_mailboxes": {
+              "label": "Boîtes aux lettres exclues",
+              "description": "Facultatif : boîtes aux lettres à ignorer, sous-dossiers compris. Caractères génériques autorisés, p. ex. Trash, Drafts, *Spam*."
+            },
             "index_attachments": {
               "label": "Indexer les pièces jointes",
               "description": "Extraire et indexer le texte des pièces jointes des e-mails."
@@ -4813,6 +4817,10 @@
             "path_filters": {
               "label": "Dossiers",
               "description": "Facultatif : un ou plusieurs dossiers à indexer (p. ex. /Documents/Projets). Laissez vide pour tout indexer."
+            },
+            "excluded_paths": {
+              "label": "Dossiers exclus",
+              "description": "Facultatif : dossiers ou fichiers à ignorer, avec tout leur contenu. Caractères génériques autorisés, p. ex. Photos, Archives/2020, *.tmp."
             }
           }
         },

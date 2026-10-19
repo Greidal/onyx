@@ -21,6 +21,10 @@ from onyx.configs.app_configs import (
     IMAP_CONNECTOR_ATTACHMENT_SIZE_THRESHOLD,
 )
 from onyx.configs.constants import DocumentSource
+from onyx.connectors.cross_connector_utils.exclusion_patterns import (
+    is_excluded,
+    normalize_exclusion_patterns,
+)
 from onyx.connectors.imap.config import DEFAULT_IMAP_PORT_NUMBER
 from onyx.connectors.imap.models import EmailHeaders
 from onyx.connectors.interfaces import (
@@ -56,6 +60,8 @@ _SLIM_BATCH_SIZE = 500
 _SEARCH_DATE_MARGIN = timedelta(days=1)
 _USERNAME_KEY = "imap_username"
 _PASSWORD_KEY = "imap_password"
+# Hierarchy delimiters of common servers ("INBOX.Sent", "INBOX/Sent").
+_MAILBOX_SEPARATORS = "./"
 
 
 class CurrentMailbox(BaseModel):
@@ -94,10 +100,12 @@ class ImapConnector(
         port: int = DEFAULT_IMAP_PORT_NUMBER,
         mailboxes: list[str] | None = None,
         index_attachments: bool = True,
+        excluded_mailboxes: list[str] | None = None,
     ) -> None:
         self._host = host
         self._port = port
         self._mailboxes = mailboxes
+        self._excluded_mailboxes = normalize_exclusion_patterns(excluded_mailboxes)
         self._index_attachments = index_attachments
         self._credentials: dict[str, Any] | None = None
 
@@ -228,15 +236,29 @@ class ImapConnector(
     def _get_mailboxes(self, mail_client: imaplib.IMAP4_SSL) -> list[str]:
         if self._mailboxes:
             # Names typed in the UI are Unicode; IMAP wants modified UTF-7.
-            return _sanitize_mailbox_names(
-                [_encode_mailbox_name(name) for name in self._mailboxes]
+            mailboxes = [_encode_mailbox_name(name) for name in self._mailboxes]
+        else:
+            mailboxes = _fetch_all_mailboxes_for_email_account(mail_client=mail_client)
+            if not mailboxes:
+                raise RuntimeError(
+                    "Failed to find any mailboxes for this email account"
+                )
+        kept = [
+            mailbox
+            for mailbox in mailboxes
+            if not is_excluded(
+                _decode_mailbox_name(mailbox),
+                self._excluded_mailboxes,
+                separators=_MAILBOX_SEPARATORS,
             )
-        fetched_mailboxes = _fetch_all_mailboxes_for_email_account(
-            mail_client=mail_client
-        )
-        if not fetched_mailboxes:
-            raise RuntimeError("Failed to find any mailboxes for this email account")
-        return _sanitize_mailbox_names(fetched_mailboxes)
+        ]
+        if len(kept) < len(mailboxes):
+            logger.info(
+                "IMAP: skipping %d of %d mailboxes",
+                len(mailboxes) - len(kept),
+                len(mailboxes),
+            )
+        return _sanitize_mailbox_names(kept)
 
     # impls for SlimConnector (pruning of deleted emails)
 

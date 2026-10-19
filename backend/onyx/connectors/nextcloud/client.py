@@ -1,7 +1,7 @@
 """WebDAV client for Nextcloud (files of one user, including shares)."""
 
 from collections import deque
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -143,16 +143,22 @@ class NextcloudWebDAVClient:
         ]
 
     def iter_files(
-        self, root: str = "", modified_since: datetime | None = None
+        self,
+        root: str = "",
+        modified_since: datetime | None = None,
+        skip: Callable[[str], bool] | None = None,
     ) -> Iterator[NextcloudFile]:
         """All files below root. With modified_since, folders that did not
         change are skipped: Nextcloud propagates a change's mtime to every
-        parent folder."""
+        parent folder. skip(path) drops a file or a whole folder without
+        listing it."""
         queue: deque[str] = deque(["/" + root.strip("/")])
         while queue:
             folder = queue.popleft()
             for entry in self._propfind_children(folder):
                 if entry.path.rstrip("/") == folder.rstrip("/"):
+                    continue
+                if skip is not None and skip(entry.path):
                     continue
                 changed = (
                     modified_since is None

@@ -1,5 +1,6 @@
 """Nextcloud connector: indexes the files of one Nextcloud user via WebDAV."""
 
+import re
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from io import BytesIO
@@ -8,6 +9,10 @@ from urllib.parse import urlencode
 
 from onyx.configs.app_configs import INDEX_BATCH_SIZE
 from onyx.configs.constants import DocumentSource
+from onyx.connectors.cross_connector_utils.exclusion_patterns import (
+    is_excluded,
+    normalize_exclusion_patterns,
+)
 from onyx.connectors.exceptions import (
     ConnectorValidationError,
     CredentialExpiredError,
@@ -56,6 +61,23 @@ def _normalize_extensions(extensions: list[str] | None) -> set[str]:
 
 _TITLE_PATH_PARTS = 4
 
+# "CONNECTA-2026", "Lageplan_2025"
+_FOUR_DIGIT_YEAR = re.compile(r"(?<!\d)(20[0-3]\d)(?!\d)")
+# "MKOR_26", "DES25", "Maus 26", "00_CAT26": two digits after a letter, at the end
+_TWO_DIGIT_YEAR = re.compile(r"[A-Za-z][ _-]?(\d{2})$")
+
+
+def _project_year(path: str) -> str | None:
+    """Year of the deepest folder that names one. File names are ignored:
+    copies like "Zeitplan_2026.docx" often still hold last year's content."""
+    for folder in reversed([p for p in path.split("/") if p][:-1]):
+        if match := _FOUR_DIGIT_YEAR.search(folder):
+            return match.group(1)
+        match = _TWO_DIGIT_YEAR.search(folder)
+        if match and 15 <= int(match.group(1)) <= 39:
+            return f"20{match.group(1)}"
+    return None
+
 
 def _title_with_folders(path: str) -> str:
     """The title Onyx puts in front of every chunk: the last folders and the
@@ -88,8 +110,10 @@ class NextcloudConnector(LoadConnector, PollConnector, SlimConnector):
         batch_size: int = INDEX_BATCH_SIZE,
         file_extensions: list[str] | None = None,
         path_filters: list[str] | None = None,
+        excluded_paths: list[str] | None = None,
     ) -> None:
         self.roots = _normalize_roots(path_filter, path_filters)
+        self.excluded_paths = normalize_exclusion_patterns(excluded_paths)
         self.batch_size = batch_size
         self.file_extensions = _normalize_extensions(file_extensions)
         self._client: NextcloudWebDAVClient | None = None
@@ -176,13 +200,18 @@ class NextcloudConnector(LoadConnector, PollConnector, SlimConnector):
     def _iter_root(
         self, root: str, modified_since: datetime | None
     ) -> Iterator[NextcloudFile]:
-        for file in self.client.iter_files(root=root, modified_since=modified_since):
+        for file in self.client.iter_files(
+            root=root, modified_since=modified_since, skip=self._is_excluded
+        ):
             if get_file_ext(file.name) not in self.file_extensions:
                 continue
             if file.size is not None and file.size > MAX_FILE_SIZE_BYTES:
                 logger.info("Skipping %s: %s bytes", file.path, file.size)
                 continue
             yield file
+
+    def _is_excluded(self, path: str) -> bool:
+        return is_excluded(path, self.excluded_paths)
 
     def _yield_documents(
         self, modified_since: datetime | None
@@ -231,6 +260,8 @@ class NextcloudConnector(LoadConnector, PollConnector, SlimConnector):
         metadata: dict[str, str | list[str]] = {"folder": folder}
         if file.owner:
             metadata["owner"] = file.owner
+        if year := _project_year(file.path):
+            metadata["year"] = year
 
         return Document(
             id=self._document_id(file),

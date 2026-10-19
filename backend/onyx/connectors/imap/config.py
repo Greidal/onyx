@@ -5,6 +5,7 @@ from onyx.connectors.connector_config import ConnectorConfig, CredentialBinding
 from onyx.connectors.field_policy import (
     FieldClass,
     FieldPolicy,
+    ScopeExclude,
     ScopeInclude,
     ScopeToggle,
 )
@@ -22,6 +23,11 @@ class ImapConnectorConfig(ImapCredentialBinding, ConnectorConfig):
     mailboxes: Annotated[
         list[str] | None,
         FieldPolicy(FieldClass.SCOPE, scope=ScopeInclude(empty_means_all=True)),
+    ] = None
+    # Glob patterns for mailboxes to skip, e.g. "Trash", "*Spam*", "INBOX.Archiv.*".
+    excluded_mailboxes: Annotated[
+        list[str] | None,
+        FieldPolicy(FieldClass.SCOPE, scope=ScopeExclude(split_on_commas=False)),
     ] = None
     index_attachments: Annotated[
         bool, FieldPolicy(FieldClass.SCOPE, scope=ScopeToggle(widens_when=True))

@@ -240,3 +240,36 @@ def test_date_without_zone_becomes_utc(date_header: str) -> None:
     assert doc.doc_updated_at is not None
     assert doc.doc_updated_at.tzinfo is not None
     assert doc.doc_updated_at.isoformat() == "2026-10-19T07:00:56+00:00"
+
+
+def test_excluded_mailboxes_are_skipped_including_children() -> None:
+    connector = ImapConnector(
+        host="imap.example.de",
+        excluded_mailboxes=["Trash", "*spam*", "Unzustellbar", "*Räume*"],
+    )
+    client = MagicMock()
+    client.list.return_value = (
+        "OK",
+        [
+            b'(\\HasNoChildren) "." "INBOX"',
+            b'(\\HasNoChildren) "." "INBOX.Trash"',
+            b'(\\HasNoChildren) "." "INBOX.spambucket"',
+            b'(\\HasChildren) "." "INBOX.CoT.Unzustellbar"',
+            b'(\\HasNoChildren) "." "INBOX.CoT.Unzustellbar.Abmeldung newsletter"',
+            b'(\\HasNoChildren) "." "INBOX.MAUS.R&AOQ-ume"',
+            b'(\\HasNoChildren) "." "INBOX.MAUS.Anfragen&-Angebote"',
+        ],
+    )
+    assert connector._get_mailboxes(client) == [
+        '"INBOX"',
+        '"INBOX.MAUS.Anfragen&-Angebote"',
+    ]
+
+
+def test_exclusions_also_apply_to_configured_mailboxes() -> None:
+    connector = ImapConnector(
+        host="imap.example.de",
+        mailboxes=["INBOX", "INBOX.Drafts"],
+        excluded_mailboxes=["drafts"],
+    )
+    assert connector._get_mailboxes(MagicMock()) == ['"INBOX"']

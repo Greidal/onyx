@@ -4789,6 +4789,10 @@
               "label": "メールボックス",
               "description": "インデックスするメールボックスを指定します(例: INBOX、Sent、Drafts)。空欄の場合は、すべてのメールボックスをインデックスします。"
             },
+            "excluded_mailboxes": {
+              "label": "除外するメールボックス",
+              "description": "任意：スキップするメールボックス（サブフォルダーを含む）。ワイルドカード可（例：Trash、Drafts、*Spam*）。"
+            },
             "index_attachments": {
               "label": "添付ファイルをインデックス",
               "description": "メールの添付ファイルからテキストを抽出してインデックスします。"
@@ -4813,6 +4817,10 @@
             "path_filters": {
               "label": "フォルダー",
               "description": "任意：インデックスするフォルダー（例: /Documents/Projects）。空欄の場合はすべてをインデックスします。"
+            },
+            "excluded_paths": {
+              "label": "除外するフォルダー",
+              "description": "任意：スキップするフォルダーまたはファイル（配下をすべて含む）。ワイルドカード可（例：Photos、Archive/2020、*.tmp）。"
             }
           }
         },

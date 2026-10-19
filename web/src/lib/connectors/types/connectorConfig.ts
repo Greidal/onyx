@@ -258,12 +258,14 @@ export interface ImapConfig {
   host: string;
   port?: number;
   mailboxes?: string[];
+  excluded_mailboxes?: string[];
   index_attachments?: boolean;
 }
 
 export interface NextcloudConfig {
   path_filter?: string;
   path_filters?: string[];
+  excluded_paths?: string[];
   file_extensions?: string[];
 }
 

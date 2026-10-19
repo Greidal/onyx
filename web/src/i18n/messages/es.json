@@ -4789,6 +4789,10 @@
               "label": "Buzones",
               "description": "Especifica los buzones a indexar (p. ej., INBOX, Sent, Drafts). Déjalo vacío para indexar todos los buzones."
             },
+            "excluded_mailboxes": {
+              "label": "Buzones excluidos",
+              "description": "Opcional: buzones que se omiten, incluidas sus subcarpetas. Se permiten comodines, p. ej. Trash, Drafts, *Spam*."
+            },
             "index_attachments": {
               "label": "Indexar adjuntos",
               "description": "Extraer e indexar el texto de los adjuntos de correo."
@@ -4813,6 +4817,10 @@
             "path_filters": {
               "label": "Carpetas",
               "description": "Opcional: una o varias carpetas que indexar (p. ej. /Documentos/Proyectos). Déjelo vacío para indexar todo."
+            },
+            "excluded_paths": {
+              "label": "Carpetas excluidas",
+              "description": "Opcional: carpetas o archivos que se omiten, incluido todo su contenido. Se permiten comodines, p. ej. Fotos, Archivo/2020, *.tmp."
             }
           }
         },
