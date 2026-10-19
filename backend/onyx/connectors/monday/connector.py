@@ -1,7 +1,10 @@
 """monday.com connector: one document per item, with column values and updates."""
 
-from datetime import datetime, timezone
+import json
+import os
+from datetime import datetime, timezone, tzinfo
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from dateutil import parser
 
@@ -30,6 +33,8 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 _SLIM_BATCH_SIZE = 500
+# Used when the API user has no time zone set in monday.com.
+_DEFAULT_TIME_ZONE = os.environ.get("MONDAY_TIME_ZONE") or "Europe/Berlin"
 
 
 class MondayConnectorCheckpoint(ConnectorCheckpoint):
@@ -51,6 +56,36 @@ def _parse_time(value: str | None) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
+def _zone(name: str | None) -> tzinfo | None:
+    if not name:
+        return None
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return None
+
+
+def _column_text(column: dict[str, Any], zone: tzinfo) -> str | None:
+    """The column's text. A date column with a time comes as UTC in "text";
+    the board shows it in local time, so convert it."""
+    text = column.get("text")
+    if column.get("type") != "date" or not column.get("value"):
+        return text
+    try:
+        value = json.loads(column["value"])
+    except (TypeError, ValueError):
+        return text
+    if not value.get("date") or not value.get("time"):
+        return text
+    try:
+        moment = datetime.fromisoformat(f"{value['date']}T{value['time']}")
+    except ValueError:
+        return text
+    return (
+        moment.replace(tzinfo=timezone.utc).astimezone(zone).strftime("%Y-%m-%d %H:%M")
+    )
+
+
 def _last_activity(item: dict[str, Any]) -> datetime | None:
     """Comments do not change the item's updated_at, so use the newest of both."""
     times = [_parse_time(item.get("updated_at"))]
@@ -64,6 +99,7 @@ def _last_activity(item: dict[str, Any]) -> datetime | None:
 class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint], SlimConnector):
     def __init__(self) -> None:
         self._client: MondayClient | None = None
+        self._time_zone: tzinfo | None = None
 
     @property
     def client(self) -> MondayClient:
@@ -160,6 +196,19 @@ class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint], SlimConn
         if batch:
             yield batch
 
+    @property
+    def time_zone(self) -> tzinfo:
+        """The API user's time zone, else MONDAY_TIME_ZONE / Europe/Berlin."""
+        if self._time_zone is None:
+            name = None
+            try:
+                me = self.client.execute("query { me { time_zone_identifier } }")
+                name = (me.get("me") or {}).get("time_zone_identifier")
+            except MondayApiError as e:
+                logger.warning("Could not read the monday.com time zone: %s", e)
+            self._time_zone = _zone(name) or _zone(_DEFAULT_TIME_ZONE) or timezone.utc
+        return self._time_zone
+
     def _get_board(self, board_id: str) -> dict[str, Any] | None:
         boards = (
             self.client.execute(
@@ -170,10 +219,10 @@ class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint], SlimConn
         )
         return boards[0] if boards else None
 
-    @staticmethod
     def _item_to_document(
-        board: dict[str, Any], item: dict[str, Any], updated_at: datetime | None
+        self, board: dict[str, Any], item: dict[str, Any], updated_at: datetime | None
     ) -> Document:
+        zone = self.time_zone
         item_id = str(item["id"])
         item_name = item.get("name") or f"Item {item_id}"
         board_name = board.get("name") or "Board"
@@ -184,7 +233,7 @@ class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint], SlimConn
             lines.append(f"Group: {group}")
         lines.append(f"Item: {item_name}")
         for column in item.get("column_values") or []:
-            text = (column or {}).get("text")
+            text = _column_text(column or {}, zone)
             title = ((column or {}).get("column") or {}).get("title")
             if text:
                 lines.append(f"{title}: {text}" if title else text)
@@ -198,9 +247,13 @@ class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint], SlimConn
             # The API returns the newest first; read them in order.
             for update in reversed(updates):
                 author = (update.get("creator") or {}).get("name") or "Unknown"
-                lines.append(
-                    f"{author} ({update.get('created_at', '')[:10]}): {update['text_body']}"
+                created = _parse_time(update.get("created_at"))
+                when = (
+                    created.astimezone(zone).strftime("%Y-%m-%d %H:%M")
+                    if created
+                    else ""
                 )
+                lines.append(f"{author} ({when}): {update['text_body']}")
 
         metadata: dict[str, str | list[str]] = {"board": board_name}
         if group:

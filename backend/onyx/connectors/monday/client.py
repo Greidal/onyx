@@ -22,7 +22,7 @@ _ITEM_FIELDS = """
     updated_at
     url
     group { title }
-    column_values { text column { title } }
+    column_values { type text value column { title } }
     updates(limit: 50) { text_body created_at creator { name } }
 """
 _SLIM_ITEM_FIELDS = "id"
