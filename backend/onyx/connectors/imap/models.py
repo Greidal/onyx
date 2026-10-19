@@ -1,7 +1,7 @@
 import email.header
 import email.utils
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from email.message import Message
 from enum import Enum
 
@@ -55,9 +55,12 @@ class EmailHeaders(BaseModel):
             if not date_str:
                 return None
             try:
-                return email.utils.parsedate_to_datetime(date_str)
+                parsed = email.utils.parsedate_to_datetime(date_str)
             except (TypeError, ValueError):
                 return None
+            # "-0000" means "zone unknown" (RFC 5322) and yields a naive
+            # datetime, which Onyx cannot compare with aware ones.
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
         subject = _decode(Header.SUBJECT_HEADER) or "(no subject)"
         from_ = _decode(Header.FROM_HEADER) or "Unknown Sender"

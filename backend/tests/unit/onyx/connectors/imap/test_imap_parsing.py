@@ -227,3 +227,16 @@ def test_mail_from_line_inside_text_is_kept() -> None:
 def test_only_quoted_mail_keeps_its_text() -> None:
     body = _texts(_document(_message(plain="> nur ein Zitat", html=None)))[0]
     assert "nur ein Zitat" in body
+
+
+@pytest.mark.parametrize(
+    "date_header", ["Mon, 19 Oct 2026 07:00:56 -0000", "19 Oct 2026 07:00:56"]
+)
+def test_date_without_zone_becomes_utc(date_header: str) -> None:
+    msg = _message()
+    del msg["Date"]
+    msg["Date"] = date_header
+    doc = _document(msg)
+    assert doc.doc_updated_at is not None
+    assert doc.doc_updated_at.tzinfo is not None
+    assert doc.doc_updated_at.isoformat() == "2026-10-19T07:00:56+00:00"
