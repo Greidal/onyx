@@ -14,6 +14,12 @@ _ITEM = {
         {"text": "In Arbeit", "column": {"title": "Status"}},
         {"text": "", "column": {"title": "Leer"}},
         {"text": "2026-10-20", "column": {"title": "Termin"}},
+        {
+            "type": "date",
+            "text": "2026-10-19 16:00",
+            "value": '{"date":"2026-10-19","icon":"","time":"16:00:00"}',
+            "column": {"title": "Zeitpunkt"},
+        },
     ],
     "updates": [
         {
@@ -31,6 +37,8 @@ _ITEM = {
 
 
 def _graphql(query: str, variables: dict[str, Any]) -> dict[str, Any]:
+    if "me {" in query:
+        return {"me": {"time_zone_identifier": None}}
     if "boards(limit" in query:
         return {
             "boards": [{"id": "1", "name": "Messe"}] if variables["page"] == 1 else []
@@ -92,6 +100,9 @@ def test_item_document_has_column_titles_group_and_ordered_updates() -> None:
     text = document.sections[0].text
     assert "Status: In Arbeit" in text
     assert "Termin: 2026-10-20" in text
+    # 16:00 UTC in the API is 18:00 summer time on the board.
+    assert "Zeitpunkt: 2026-10-19 18:00" in text
+    assert "Max (2026-10-15 14:00): Neu: Strom ist bestellt" in text
     assert "Leer" not in text
     assert text.index("Erster Kommentar") < text.index("Strom ist bestellt")
     assert document.metadata == {"board": "Messe", "group": "Aufbau"}
