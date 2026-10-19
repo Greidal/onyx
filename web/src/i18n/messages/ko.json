@@ -4809,6 +4809,10 @@
             "nextcloud_server_url": {
               "label": "Nextcloud URL",
               "placeholder": "https://cloud.example.com"
+            },
+            "path_filters": {
+              "label": "폴더",
+              "description": "선택 사항: 인덱싱할 폴더(예: /Documents/Projects). 비워 두면 전체를 인덱싱합니다."
             }
           }
         },

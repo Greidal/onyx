@@ -2320,11 +2320,11 @@ export const connectorConfigs: Record<
     ],
     advanced_values: [
       {
-        type: "text",
-        label: "connectors.nextcloud.fields.path_filter.label",
-        name: "path_filter",
+        type: "list",
+        label: "connectors.nextcloud.fields.path_filters.label",
+        name: "path_filters",
         optional: true,
-        description: "connectors.nextcloud.fields.path_filter.description",
+        description: "connectors.nextcloud.fields.path_filters.description",
       },
       {
         type: "list",

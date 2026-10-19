@@ -4809,6 +4809,10 @@
             "nextcloud_server_url": {
               "label": "Nextcloud の URL",
               "placeholder": "https://cloud.example.com"
+            },
+            "path_filters": {
+              "label": "フォルダー",
+              "description": "任意：インデックスするフォルダー（例: /Documents/Projects）。空欄の場合はすべてをインデックスします。"
             }
           }
         },

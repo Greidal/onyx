@@ -165,6 +165,7 @@ MASK_CREDENTIALS_WHITELIST = {
     "domain",
     "highspot_url",
     "testrail_base_url",
+    "nextcloud_server_url",
     # OAuth scope lists are public identifiers, not secrets, and masked list
     # items cannot round-trip through a chip editor.
     "scopes",

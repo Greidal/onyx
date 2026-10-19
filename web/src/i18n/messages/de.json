@@ -4809,6 +4809,10 @@
             "nextcloud_server_url": {
               "label": "Nextcloud-URL",
               "placeholder": "https://cloud.example.com"
+            },
+            "path_filters": {
+              "label": "Ordner",
+              "description": "Optional: ein oder mehrere Ordner, die indexiert werden (z. B. /Dokumente/Projekte). Leer lassen, um alles zu indexieren, was das Konto sieht."
             }
           }
         },
