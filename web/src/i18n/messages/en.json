@@ -4789,6 +4789,10 @@
               "label": "Mailboxes",
               "description": "Specify mailboxes to index (e.g., INBOX, Sent, Drafts). Leave empty to index all mailboxes."
             },
+            "excluded_mailboxes": {
+              "label": "Excluded mailboxes",
+              "description": "Optional: mailboxes to skip, including their subfolders. Wildcards allowed, e.g. Trash, Drafts, *Spam*."
+            },
             "index_attachments": {
               "label": "Index Attachments",
               "description": "Extract and index text from email attachments."
@@ -4813,6 +4817,10 @@
             "path_filters": {
               "label": "Folders",
               "description": "Optional: one or more folders to index (e.g. /Documents/Projects). Leave empty to index everything the account can see."
+            },
+            "excluded_paths": {
+              "label": "Excluded folders",
+              "description": "Optional: folders or files to skip, including everything below them. Wildcards allowed, e.g. Photos, Archive/2020, *.tmp."
             }
           }
         },

@@ -4789,6 +4789,10 @@
               "label": "Postfächer",
               "description": "Geben Sie die zu indexierenden Postfächer an (z. B. INBOX, Sent, Drafts). Leer lassen, um alle Postfächer zu indexieren."
             },
+            "excluded_mailboxes": {
+              "label": "Ausgeschlossene Postfächer",
+              "description": "Optional: Postfächer, die übersprungen werden, samt Unterordnern. Platzhalter erlaubt, z. B. Trash, Drafts, *Spam*."
+            },
             "index_attachments": {
               "label": "Anhänge indexieren",
               "description": "Text aus E-Mail-Anhängen extrahieren und indexieren."
@@ -4813,6 +4817,10 @@
             "path_filters": {
               "label": "Ordner",
               "description": "Optional: ein oder mehrere Ordner, die indexiert werden (z. B. /Dokumente/Projekte). Leer lassen, um alles zu indexieren, was das Konto sieht."
+            },
+            "excluded_paths": {
+              "label": "Ausgeschlossene Ordner",
+              "description": "Optional: Ordner oder Dateien, die übersprungen werden, samt allem darunter. Platzhalter erlaubt, z. B. Fotos, Archiv/2020, *.tmp."
             }
           }
         },

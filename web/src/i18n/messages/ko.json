@@ -4789,6 +4789,10 @@
               "label": "사서함",
               "description": "인덱싱할 사서함을 지정하세요 (예: INBOX, Sent, Drafts). 비워 두면 모든 사서함을 인덱싱합니다."
             },
+            "excluded_mailboxes": {
+              "label": "제외할 메일함",
+              "description": "선택 사항: 건너뛸 메일함(하위 폴더 포함). 와일드카드 사용 가능(예: Trash, Drafts, *Spam*)."
+            },
             "index_attachments": {
               "label": "첨부 파일 인덱싱",
               "description": "이메일 첨부 파일의 텍스트를 추출하여 인덱싱합니다."
@@ -4813,6 +4817,10 @@
             "path_filters": {
               "label": "폴더",
               "description": "선택 사항: 인덱싱할 폴더(예: /Documents/Projects). 비워 두면 전체를 인덱싱합니다."
+            },
+            "excluded_paths": {
+              "label": "제외할 폴더",
+              "description": "선택 사항: 건너뛸 폴더 또는 파일(하위 항목 모두 포함). 와일드카드 사용 가능(예: Photos, Archive/2020, *.tmp)."
             }
           }
         },

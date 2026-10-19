@@ -4789,6 +4789,10 @@
               "label": "邮箱",
               "description": "指定要索引的邮箱（例如 INBOX、Sent、Drafts）。留空则索引所有邮箱。"
             },
+            "excluded_mailboxes": {
+              "label": "排除的邮箱",
+              "description": "可选：要跳过的邮箱（包括其子文件夹）。可使用通配符，例如 Trash、Drafts、*Spam*。"
+            },
             "index_attachments": {
               "label": "索引附件",
               "description": "从电子邮件附件中提取并索引文本。"
@@ -4813,6 +4817,10 @@
             "path_filters": {
               "label": "文件夹",
               "description": "可选：要索引的一个或多个文件夹（例如 /Documents/Projects）。留空则索引全部内容。"
+            },
+            "excluded_paths": {
+              "label": "排除的文件夹",
+              "description": "可选：要跳过的文件夹或文件（包括其下所有内容）。可使用通配符，例如 Photos、Archive/2020、*.tmp。"
             }
           }
         },
