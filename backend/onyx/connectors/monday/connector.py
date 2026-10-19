@@ -1,6 +1,6 @@
 """monday.com connector: one document per item, with column values and updates."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from dateutil import parser
@@ -45,9 +45,10 @@ def _parse_time(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        return parser.isoparse(value)
+        parsed = parser.isoparse(value)
     except (TypeError, ValueError):
         return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 def _last_activity(item: dict[str, Any]) -> datetime | None:
