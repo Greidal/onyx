@@ -54,6 +54,17 @@ def _normalize_extensions(extensions: list[str] | None) -> set[str]:
     }
 
 
+_TITLE_PATH_PARTS = 4
+
+
+def _title_with_folders(path: str) -> str:
+    """The title Onyx puts in front of every chunk: the last folders and the
+    file name ("MKOR_26 / Aussteller / Vertrag.pdf"). A file name alone often
+    says too little for retrieval."""
+    parts = [part for part in path.split("/") if part]
+    return " / ".join(parts[-_TITLE_PATH_PARTS:])
+
+
 def _normalize_roots(
     path_filter: str | None, path_filters: list[str] | None
 ) -> list[str]:
@@ -226,7 +237,7 @@ class NextcloudConnector(LoadConnector, PollConnector, SlimConnector):
             sections=[TextSection(link=self._file_url(file), text=text)],
             source=DocumentSource.NEXTCLOUD,
             semantic_identifier=file.name,
-            title=file.name,
+            title=_title_with_folders(file.path),
             doc_updated_at=file.last_modified,
             metadata=metadata,
             primary_owners=(

@@ -190,3 +190,40 @@ def test_fetch_uses_peek_and_uids() -> None:
     assert msg is not None
     client.uid.assert_called_once_with("FETCH", "7", "(BODY.PEEK[])")
     assert msg["Message-ID"] == "<abc@example.com>"
+
+
+@pytest.mark.parametrize(
+    "reply,kept,dropped",
+    [
+        (
+            "Passt, ich bringe die Kabel mit.\n\nAm 16.10.2026 um 09:30 schrieb Erika Muster <erika@example.com>:\n> Wer bringt die Kabel?\n> Gruß Erika",
+            "Passt, ich bringe die Kabel mit.",
+            "Wer bringt die Kabel?",
+        ),
+        (
+            "Danke!\n\nVon: Erika Muster <erika@example.com>\nGesendet: Freitag, 16. Oktober 2026 09:30\nAn: Max\nBetreff: Kabel\n\nWer bringt die Kabel?",
+            "Danke!",
+            "Wer bringt die Kabel?",
+        ),
+        (
+            "Sure.\n\nOn Fri, Oct 16, 2026 at 9:30 AM Erika <erika@example.com> wrote:\n> Who brings the cables?",
+            "Sure.",
+            "Who brings the cables?",
+        ),
+    ],
+)
+def test_quoted_history_is_dropped(reply: str, kept: str, dropped: str) -> None:
+    body = _texts(_document(_message(plain=reply, html=None)))[0]
+    assert kept in body
+    assert dropped not in body
+
+
+def test_mail_from_line_inside_text_is_kept() -> None:
+    text = "Von: Montag an gilt der neue Plan.\nBitte beachten."
+    body = _texts(_document(_message(plain=text, html=None)))[0]
+    assert "Bitte beachten." in body
+
+
+def test_only_quoted_mail_keeps_its_text() -> None:
+    body = _texts(_document(_message(plain="> nur ein Zitat", html=None)))[0]
+    assert "nur ein Zitat" in body

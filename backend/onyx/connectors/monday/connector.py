@@ -210,7 +210,8 @@ class MondayConnector(CheckpointedConnector[MondayConnectorCheckpoint], SlimConn
             sections=[TextSection(text="\n".join(lines), link=item.get("url") or None)],
             source=DocumentSource.MONDAY,
             semantic_identifier=item_name,
-            title=item_name,
+            # Onyx puts the title in front of every chunk.
+            title=f"{board_name}: {item_name}",
             metadata=metadata,
             doc_updated_at=updated_at,
         )
