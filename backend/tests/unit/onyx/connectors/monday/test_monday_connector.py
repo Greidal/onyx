@@ -96,6 +96,7 @@ def test_item_document_has_column_titles_group_and_ordered_updates() -> None:
     assert text.index("Erster Kommentar") < text.index("Strom ist bestellt")
     assert document.metadata == {"board": "Messe", "group": "Aufbau"}
     assert document.semantic_identifier == "Standaufbau Halle 3"
+    assert document.title == "Messe: Standaufbau Halle 3"
     # A new comment counts as activity even though updated_at is older.
     assert document.doc_updated_at is not None
     assert document.doc_updated_at.isoformat() == "2026-10-15T12:00:00+00:00"

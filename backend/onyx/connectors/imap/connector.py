@@ -588,9 +588,9 @@ def _parse_email_sections(
     # Prefer text/plain: it keeps the line breaks the sender wrote. Plain text
     # must not go through an HTML parser, which drops "<name@example.com>".
     if plain_body and plain_body.strip():
-        body = _normalize_plain_text(plain_body)
+        body = _strip_quoted_reply(_normalize_plain_text(plain_body))
     elif html_body:
-        body = parse_html_page_basic(html_body)
+        body = _strip_quoted_reply(parse_html_page_basic(html_body))
     else:
         body = ""
 
@@ -601,6 +601,41 @@ def _parse_email_sections(
 
     sections = [TextSection(text=body)] if body else []
     return sections + attachment_sections
+
+
+# Where a reply starts quoting the earlier mail. Everything from there on is
+# already indexed as its own document.
+_REPLY_HEADER_PATTERNS = [
+    re.compile(r"^\s*(Am|On)\s.{4,200}\s(schrieb|wrote)\b.*:?\s*$", re.IGNORECASE),
+    re.compile(
+        r"^\s*-{2,}\s*(Original Message|Ursprüngliche Nachricht|Forwarded message|Weitergeleitete Nachricht)\s*-{0,}\s*$",
+        re.IGNORECASE,
+    ),
+    re.compile(r"^\s*(Von|From)\s*:\s*\S.*$", re.IGNORECASE),
+]
+_OUTLOOK_HEADER_NEXT = re.compile(
+    r"^\s*(Gesendet|Sent|Datum|Date|An|To)\s*:", re.IGNORECASE
+)
+
+
+def _strip_quoted_reply(text: str) -> str:
+    """Drops the quoted history of a reply ("> ..." lines, "Am ... schrieb",
+    Outlook "Von:/Gesendet:" blocks). Returns the text unchanged when nothing
+    of the mail itself would be left."""
+    lines = text.split("\n")
+    cut = len(lines)
+    for index, line in enumerate(lines):
+        if _REPLY_HEADER_PATTERNS[2].match(line):
+            following = lines[index + 1 : index + 3]
+            if not any(_OUTLOOK_HEADER_NEXT.match(nxt) for nxt in following):
+                continue
+        elif not any(pattern.match(line) for pattern in _REPLY_HEADER_PATTERNS[:2]):
+            continue
+        cut = index
+        break
+    own = [line for line in lines[:cut] if not line.lstrip().startswith(">")]
+    stripped = "\n".join(own).strip()
+    return stripped or text.strip()
 
 
 def _normalize_plain_text(text: str) -> str:

@@ -139,6 +139,7 @@ def test_documents_use_extracted_text_links_and_extension_filter() -> None:
     assert pdf.sections[0].text == "text of Pläne & Aufbau.pdf"
     assert pdf.sections[0].link == f"{_SERVER}/f/20"
     assert pdf.metadata == {"folder": "/Messe 2026", "owner": "Erika"}
+    assert pdf.title == "Messe 2026 / Pläne & Aufbau.pdf"
     assert pdf.doc_updated_at == datetime(2026, 10, 16, 10, tzinfo=timezone.utc)
 
 
