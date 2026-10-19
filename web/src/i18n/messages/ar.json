@@ -4809,6 +4809,10 @@
             "nextcloud_server_url": {
               "label": "عنوان URL لـ Nextcloud",
               "placeholder": "https://cloud.example.com"
+            },
+            "path_filters": {
+              "label": "المجلدات",
+              "description": "اختياري: مجلد واحد أو أكثر للفهرسة (مثل /Documents/Projects). اتركه فارغًا لفهرسة كل شيء."
             }
           }
         },

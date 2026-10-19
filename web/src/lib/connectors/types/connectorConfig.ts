@@ -263,6 +263,7 @@ export interface ImapConfig {
 
 export interface NextcloudConfig {
   path_filter?: string;
+  path_filters?: string[];
   file_extensions?: string[];
 }
 

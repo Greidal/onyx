@@ -4809,6 +4809,10 @@
             "nextcloud_server_url": {
               "label": "URL de Nextcloud",
               "placeholder": "https://cloud.example.com"
+            },
+            "path_filters": {
+              "label": "Carpetas",
+              "description": "Opcional: una o varias carpetas que indexar (p. ej. /Documentos/Proyectos). Déjelo vacío para indexar todo."
             }
           }
         },

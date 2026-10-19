@@ -4809,6 +4809,10 @@
             "nextcloud_server_url": {
               "label": "Nextcloud 网址",
               "placeholder": "https://cloud.example.com"
+            },
+            "path_filters": {
+              "label": "文件夹",
+              "description": "可选：要索引的一个或多个文件夹（例如 /Documents/Projects）。留空则索引全部内容。"
             }
           }
         },

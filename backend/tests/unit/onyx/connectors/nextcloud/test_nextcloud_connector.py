@@ -151,11 +151,32 @@ def test_configured_extensions_are_respected() -> None:
     assert [doc.semantic_identifier for doc in documents] == ["Pläne & Aufbau.pdf"]
 
 
-def test_path_filter_limits_the_walk() -> None:
-    connector = _connector(path_filter="/Archiv")
-    assert [
-        file.path for file in connector.client.iter_files(root=connector.path_filter)
-    ] == ["/Archiv/alt.docx"]
+def test_legacy_single_path_filter_still_works() -> None:
+    connector = _connector(path_filter="Archiv")
+    assert connector.roots == ["/Archiv"]
+    ids = {doc.id for batch in connector.retrieve_all_slim_docs() for doc in batch}
+    assert ids == {"nextcloud_30"}
+
+
+def test_several_folders_are_walked_and_nested_ones_dropped() -> None:
+    connector = _connector(
+        path_filters=["/Messe 2026", "Archiv/", "/Messe 2026/Unterordner", " "]
+    )
+    assert connector.roots == ["/Archiv", "/Messe 2026"]
+    with patch.object(
+        nextcloud_connector, "extract_file_text", side_effect=_fake_extract
+    ):
+        names = {
+            doc.semantic_identifier
+            for batch in connector.load_from_state()
+            for doc in batch
+        }
+    assert names == {"Pläne & Aufbau.pdf", "alt.docx"}
+
+
+def test_no_folder_means_the_whole_account() -> None:
+    assert _connector().roots == ["/"]
+    assert _connector(path_filter="", path_filters=[]).roots == ["/"]
 
 
 def test_slim_docs_list_every_indexable_file() -> None:
@@ -169,3 +190,18 @@ def test_client_falls_back_to_login_name_without_ocs_id() -> None:
         session_cls.return_value.get.return_value = _response(200, payload={"ocs": {}})
         client = NextcloudWebDAVClient(_SERVER, "erika", "pw")
         assert client.user_id == "erika"
+
+
+def test_server_url_is_not_masked_so_saved_accounts_can_be_reused() -> None:
+    # The add-connector form matches the typed URL against saved accounts.
+    from onyx.utils.encryption import mask_credential_dict
+
+    masked = mask_credential_dict(
+        {
+            "nextcloud_server_url": _SERVER,
+            "nextcloud_username": "erika",
+            "nextcloud_password": "app-password-123456",
+        }
+    )
+    assert masked["nextcloud_server_url"] == _SERVER
+    assert masked["nextcloud_password"] != "app-password-123456"

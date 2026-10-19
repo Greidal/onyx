@@ -54,14 +54,31 @@ def _normalize_extensions(extensions: list[str] | None) -> set[str]:
     }
 
 
+def _normalize_roots(
+    path_filter: str | None, path_filters: list[str] | None
+) -> list[str]:
+    """Folders to walk, as "/a/b". A folder inside another one is dropped, so
+    no file is fetched twice. No folder at all means the whole account."""
+    raw = [path_filter or "", *(path_filters or [])]
+    roots = sorted(
+        {"/" + p.strip().strip("/") for p in raw if p and p.strip().strip("/")}
+    )
+    kept: list[str] = []
+    for root in roots:
+        if not any(root == k or root.startswith(k + "/") for k in kept):
+            kept.append(root)
+    return kept or ["/"]
+
+
 class NextcloudConnector(LoadConnector, PollConnector, SlimConnector):
     def __init__(
         self,
         path_filter: str | None = None,
         batch_size: int = INDEX_BATCH_SIZE,
         file_extensions: list[str] | None = None,
+        path_filters: list[str] | None = None,
     ) -> None:
-        self.path_filter = (path_filter or "").strip()
+        self.roots = _normalize_roots(path_filter, path_filters)
         self.batch_size = batch_size
         self.file_extensions = _normalize_extensions(file_extensions)
         self._client: NextcloudWebDAVClient | None = None
@@ -142,9 +159,13 @@ class NextcloudConnector(LoadConnector, PollConnector, SlimConnector):
     def _iter_indexable_files(
         self, modified_since: datetime | None
     ) -> Iterator[NextcloudFile]:
-        for file in self.client.iter_files(
-            root=self.path_filter, modified_since=modified_since
-        ):
+        for root in self.roots:
+            yield from self._iter_root(root, modified_since)
+
+    def _iter_root(
+        self, root: str, modified_since: datetime | None
+    ) -> Iterator[NextcloudFile]:
+        for file in self.client.iter_files(root=root, modified_since=modified_since):
             if get_file_ext(file.name) not in self.file_extensions:
                 continue
             if file.size is not None and file.size > MAX_FILE_SIZE_BYTES:
