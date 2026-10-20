@@ -1,6 +1,5 @@
 """Nextcloud connector: indexes the files of one Nextcloud user via WebDAV."""
 
-import re
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from io import BytesIO
@@ -13,6 +12,7 @@ from onyx.connectors.cross_connector_utils.exclusion_patterns import (
     is_excluded,
     normalize_exclusion_patterns,
 )
+from onyx.connectors.cross_connector_utils.year_in_name import year_in_names
 from onyx.connectors.exceptions import (
     ConnectorValidationError,
     CredentialExpiredError,
@@ -61,23 +61,6 @@ def _normalize_extensions(extensions: list[str] | None) -> set[str]:
 
 _TITLE_PATH_PARTS = 4
 
-# "CONNECTA-2026", "Lageplan_2025"
-_FOUR_DIGIT_YEAR = re.compile(r"(?<!\d)(20[0-3]\d)(?!\d)")
-# "MKOR_26", "DES25", "Maus 26", "00_CAT26": two digits after a letter, at the end
-_TWO_DIGIT_YEAR = re.compile(r"[A-Za-z][ _-]?(\d{2})$")
-
-
-def _project_year(path: str) -> str | None:
-    """Year of the deepest folder that names one. File names are ignored:
-    copies like "Zeitplan_2026.docx" often still hold last year's content."""
-    for folder in reversed([p for p in path.split("/") if p][:-1]):
-        if match := _FOUR_DIGIT_YEAR.search(folder):
-            return match.group(1)
-        match = _TWO_DIGIT_YEAR.search(folder)
-        if match and 15 <= int(match.group(1)) <= 39:
-            return f"20{match.group(1)}"
-    return None
-
 
 def _title_with_folders(path: str) -> str:
     """The title Onyx puts in front of every chunk: the last folders and the
@@ -85,6 +68,12 @@ def _title_with_folders(path: str) -> str:
     says too little for retrieval."""
     parts = [part for part in path.split("/") if part]
     return " / ".join(parts[-_TITLE_PATH_PARTS:])
+
+
+def _project_year(path: str) -> str | None:
+    """Year of the deepest folder that names one. File names are ignored:
+    copies like "Zeitplan_2026.docx" often still hold last year's content."""
+    return year_in_names([p for p in path.split("/") if p][:-1])
 
 
 def _normalize_roots(
